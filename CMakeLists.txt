@@ -2,14 +2,15 @@ cmake_minimum_required(VERSION 3.29)
 project(AliceProtocol VERSION 1.0 LANGUAGES C CXX)
 
 # Setting Language Standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Add Library and Source Directories
+include_directories(include)
 add_subdirectory(src)
-add_subdirectory(include)
-add_subdirectory(test)
+
+
 install(TARGETS alice
         EXPORT aliceTargets
         LIBRARY DESTINATION lib
@@ -40,6 +41,12 @@ install(FILES
 
 # Export the package for immediate use in the build tree
 export(PACKAGE AliceProtocol)
+
+if(APPLE OR UNIX)
+#    target_link_libraries(udp_server pthread)
+#    target_link_libraries(udp_client pthread)
+endif()
+
 
 add_executable(alice_simulation src/main.cpp)
 target_link_libraries(alice_simulation PRIVATE alice)  # Link to your alice library
