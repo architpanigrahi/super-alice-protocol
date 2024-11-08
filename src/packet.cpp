@@ -43,7 +43,7 @@ namespace alice
 
     Packet Packet::deserialize(const std::vector<uint8_t> &buffer)
     {
-        Packet pkt(0, 0, PacketType::DATA, 0, std::vector<uint8_t>());
+        Packet pkt(0, 0, PacketType::DATA, 0, 0, std::vector<uint8_t>()); // Added the missing sequence_number argument
         size_t offset = 0;
 
         std::memcpy(&pkt.source_id, &buffer[offset], sizeof(pkt.source_id));
@@ -56,7 +56,8 @@ namespace alice
         offset += sizeof(pkt.type);
         pkt.priority = static_cast<uint8_t>(buffer[offset]);
         offset += sizeof(pkt.priority);
-        std::memcpy(&pkt.sequence_number, &buffer[offset], sizeof(pkt.sequence_number));
+
+        std::memcpy(&pkt.sequence_number, &buffer[offset], sizeof(pkt.sequence_number)); // Deserialize sequence_number
         offset += sizeof(pkt.sequence_number);
 
         std::memcpy(&pkt.timestamp, &buffer[offset], sizeof(pkt.timestamp));
