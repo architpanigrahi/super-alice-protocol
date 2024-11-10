@@ -10,7 +10,7 @@ namespace alice
 {
     Packet::Packet(uint32_t source_id, uint32_t destination_id, PacketType type, uint8_t priority, uint32_t sequence_number, const std::vector<uint8_t> &payload, uint16_t crc = 0)
         : source_id(source_id), destination_id(destination_id), type(type), priority(priority), sequence_number(sequence_number), timestamp(static_cast<uint64_t>(std::time(nullptr))),
-          payload(payload)
+          payload(payload), crc(crc)
     {
     }
 
