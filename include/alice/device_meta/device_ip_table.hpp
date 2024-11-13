@@ -14,16 +14,16 @@ class SatelliteIPTable {
 
 public:
 
-    void update_ip(const std::string& id, const std::string& ip_address);
+    void update_ip(uint32_t id, const std::string& ip_address);
 
 
-    std::string get_ip(const std::string& id) const;
+    std::string get_ip(uint32_t id) const;
 
 
-    void remove_ip(const std::string& id);
+    void remove_ip(uint32_t id);
 
 private:
-    std::unordered_map<std::string, std::string> ip_table_;
+    std::unordered_map<uint32_t, std::string> ip_table_;
 
 };
 

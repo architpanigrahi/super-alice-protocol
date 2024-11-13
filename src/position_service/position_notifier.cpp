@@ -7,17 +7,17 @@
 
 namespace alice {
 
-    PositionBroadcaster::PositionBroadcaster(asio::io_context& io_context, uint32_t source_id, double x, double y, double z)
+    PositionNotifier::PositionNotifier(asio::io_context& io_context, const uint32_t source_id, const double x, const double y, const double z)
         : source_id_(source_id), x_(x), y_(y), z_(z), socket_(io_context, asio::ip::udp::v4()) {}
 
 
-    void PositionBroadcaster::set_position(double x, double y, double z) {
+    void PositionNotifier::set_position(const double x, const double y, const double z) {
         x_ = x;
         y_ = y;
         z_ = z;
     }
 
-    void PositionBroadcaster::broadcast_position(uint32_t destination_id, const std::string& destination_ip, uint16_t port) {
+    void PositionNotifier::broadcast_position(const uint32_t destination_id, const std::string& destination_ip, uint16_t port) {
         uint64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
         Packet packet = Packet::create_position_update_packet(source_id_, destination_id, timestamp, x_, y_, z_);
 

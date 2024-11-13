@@ -10,10 +10,10 @@
 
 namespace alice {
 
-class PositionBroadcaster {
+class PositionNotifier {
 
 public:
-    PositionBroadcaster(asio::io_context& io_context, uint32_t source_id, double x, double y, double z);
+    PositionNotifier(asio::io_context& io_context, uint32_t source_id, double x, double y, double z);
     void broadcast_position(uint32_t destination_id, const std::string& destination_ip, uint16_t port);
     void set_position(double x, double y, double z);
 

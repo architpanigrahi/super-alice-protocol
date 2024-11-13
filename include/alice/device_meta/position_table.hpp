@@ -19,12 +19,12 @@ struct PositionEntry {
 class PositionTable {
 
 public:
-    void update_position(const std::string& id, double x, double y, double z);
-    std::string get_closest_satellite(double x, double y, double z) const;
+    void update_position(uint32_t id, double x, double y, double z);
+    uint32_t get_closest_satellite(double x, double y, double z) const;
     void remove_outdated_entries(std::chrono::seconds threshold);
 
 private:
-    std::unordered_map<std::string, PositionEntry> table_;
+    std::unordered_map<uint32_t, PositionEntry> table_;
 
 };
 
