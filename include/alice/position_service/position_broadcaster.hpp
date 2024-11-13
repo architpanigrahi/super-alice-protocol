@@ -6,6 +6,7 @@
 #define ALICE_POSITION_BROADCASTER_HPP
 
 #include <asio/io_context.hpp>
+#include <asio/ip/udp.hpp>
 
 namespace alice {
 
