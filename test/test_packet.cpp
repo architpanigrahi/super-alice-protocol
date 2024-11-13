@@ -13,17 +13,15 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
     uint8_t priority = 1;
     uint32_t sequence_number = 100;
     std::vector<uint8_t> payload = {10, 20, 30, 40, 50};
+    uint16_t crc = 0;
 
-    // Create the original packet
-    alice::Packet original_packet(source_id, destination_id, type, priority, sequence_number, payload);
+    alice::Packet original_packet(source_id, destination_id, type, priority, sequence_number, payload, crc);
 
-    // Serialize the packet
     std::vector<uint8_t> serialized_data = original_packet.serialize();
+    uint16_t original_packet_crc = (static_cast<uint16_t>(serialized_data[serialized_data.size() - 2]) << 8) | serialized_data[serialized_data.size() - 1];
 
-    // Deserialize the serialized data into a new packet
     alice::Packet deserialized_packet = alice::Packet::deserialize(serialized_data);
 
-    // Verify that the deserialized packet matches the original packet
     BOOST_CHECK_EQUAL(deserialized_packet.source_id, original_packet.source_id);
     BOOST_CHECK_EQUAL(deserialized_packet.destination_id, original_packet.destination_id);
     BOOST_CHECK_EQUAL(static_cast<int>(deserialized_packet.type), static_cast<int>(original_packet.type));
@@ -31,4 +29,5 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
     BOOST_CHECK_EQUAL(deserialized_packet.sequence_number, original_packet.sequence_number);
     BOOST_CHECK_EQUAL(deserialized_packet.timestamp, original_packet.timestamp);
     BOOST_CHECK(deserialized_packet.payload == original_packet.payload);
+    BOOST_CHECK(deserialized_packet.crc == original_packet_crc);
 }
