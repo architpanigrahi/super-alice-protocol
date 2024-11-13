@@ -20,7 +20,7 @@ class PositionTable {
 
 public:
     void update_position(uint32_t id, double x, double y, double z);
-    uint32_t get_closest_satellite(double x, double y, double z) const;
+    uint32_t get_closest_satellite_id(double x, double y, double z) const;
     void remove_outdated_entries(std::chrono::seconds threshold);
 
 private:
