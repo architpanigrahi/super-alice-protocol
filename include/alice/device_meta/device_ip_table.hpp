@@ -10,7 +10,7 @@
 
 namespace alice {
 
-class SatelliteIPTable {
+class DeviceIPTable {
 
 public:
 

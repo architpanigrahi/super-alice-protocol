@@ -12,7 +12,7 @@ namespace alice {
         table_[id] = {x, y, z, std::chrono::system_clock::now()};
     }
 
-    uint32_t PositionTable::get_closest_satellite(const double x, const double y, const double z) const {
+    uint32_t PositionTable::get_closest_satellite_id(const double x, const double y, const double z) const {
         double min_distance = std::numeric_limits<double>::max();
         uint32_t closest_id{};
 
