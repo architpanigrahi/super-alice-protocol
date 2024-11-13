@@ -26,7 +26,6 @@ namespace alice {
         asio::ip::udp::endpoint destination(asio::ip::make_address(destination_ip), port);
         socket_.send_to(asio::buffer(serialized_data), destination);
 
-        std::cout << "Broadcasting position to " << destination_id << " at " << destination_ip << ":" << port << std::endl;
     }
 
 
