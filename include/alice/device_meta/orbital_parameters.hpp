@@ -10,7 +10,6 @@
 namespace alice {
 
     struct OrbitalParameters {
-        std::string id;
         double semi_major_axis;
         double eccentricity;
         double inclination;
