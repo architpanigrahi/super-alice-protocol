@@ -6,6 +6,7 @@
 #include "device_meta/position_table.hpp"
 #include "device_meta/orbital_parameters.hpp"
 #include "position_service/position_notifier.hpp"
+#include "logger.hpp"
 #include <string>
 #include <memory>
 #include <vector>
@@ -20,35 +21,34 @@ enum class PeerType
 class Peer
 {
 public:
-    Peer(const std::string &id, PeerType type);
+    Peer(const uint32_t &id, PeerType type);
     virtual ~Peer() = default;
 
-    std::string getID() const;
+    uint32_t getID() const;
     PeerType getType() const;
 
-    void setHostAddress(const std::string &host_ip, int host_port);
-    void setBootstrapAddress(const std::string &bootstrap_ip, int bootstrap_port);
+    void setHostAddress(const std::string &host_ip, uint16_t host_port);
+    void setBootstrapAddress(const std::string &bootstrap_ip, uint16_t bootstrap_port);
 
     virtual void connect() = 0;
     virtual void disconnect() = 0;
     virtual void sendData(const std::vector<uint8_t> &data) = 0;
     virtual void receiveData(std::vector<uint8_t> &data) = 0;
 
-private:
-    std::string id_;
+protected:
+    uint32_t id_;
     PeerType type_;
     std::string host_ip_;
-    int host_port_;
+    uint16_t host_port_;
     std::string bootstrap_ip_;
-    int bootstrap_port_;
+    uint16_t bootstrap_port_;
+    asio::io_context io_context_;
 
-    std::shared_ptr<DeviceIPTable> ip_table_;
-    std::shared_ptr<ECIPositionCalculator> position_calculator_;
-    std::shared_ptr<PositionTable> position_table_;
-    std::shared_ptr<OrbitalParameters> orbital_params_;
-    std::shared_ptr<PositionNotifier> position_notifier_;
+    std::shared_ptr<alice::DeviceIPTable> ip_table_;
+    std::shared_ptr<alice::ECIPositionCalculator> position_calculator_;
+    std::shared_ptr<alice::PositionTable> position_table_;
+    std::shared_ptr<alice::OrbitalParameters> orbital_params_;
+    std::shared_ptr<alice::PositionNotifier> position_notifier_;
 };
-
-std::unique_ptr<Peer> createPeer(const std::string &id, PeerType type);
 
 #endif
