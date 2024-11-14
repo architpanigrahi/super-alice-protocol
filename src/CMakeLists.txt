@@ -3,6 +3,12 @@ add_library(alice
         node.cpp
         packet.cpp
         router.cpp
+        peer.cpp
+        logger.cpp
+        device_meta/device_ip_table.cpp
+        device_meta/eci_position_calculator.cpp
+        device_meta/position_table.cpp
+        position_service/position_notifier.cpp
 #        error_handler.cpp
 )
 
