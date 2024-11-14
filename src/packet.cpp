@@ -14,7 +14,7 @@ namespace alice
     {
     }
 
-    std::vector<uint8_t> Packet::serialize() const
+    std::vector<uint8_t> Packet::serialize(const EncryptionManager& encryptor) const
     {
         std::vector<uint8_t> buffer;
 
@@ -36,7 +36,13 @@ namespace alice
                       reinterpret_cast<const uint8_t *>(&timestamp),
                       reinterpret_cast<const uint8_t *>(&timestamp) + sizeof(timestamp));
 
-        buffer.insert(buffer.end(), payload.begin(), payload.end());
+        // Perform encryption only for CONTROL & DATA PacketType
+        if (type == PacketType::DATA || type == PacketType::CONTROL) {
+            std::vector<uint8_t> encrypted_payload = encryptor.encrypt(payload);
+            buffer.insert(buffer.end(), encrypted_payload.begin(), encrypted_payload.end());
+        } else {
+            buffer.insert(buffer.end(), payload.begin(), payload.end());
+        }
 
         const uint16_t crc = crc16(buffer);
         buffer.push_back(static_cast<uint8_t>((crc >> 8) & 0xFF));
@@ -45,7 +51,7 @@ namespace alice
         return buffer;
     }
 
-    Packet Packet::deserialize(const std::vector<uint8_t> &buffer)
+    Packet Packet::deserialize(const std::vector<uint8_t> &buffer, const EncryptionManager& decryptor)
     {
         Packet pkt(0, 0, PacketType::DATA, 0, 0, std::vector<uint8_t>(), 12); // Added the missing sequence_number argument
         size_t offset = 0;
@@ -67,7 +73,13 @@ namespace alice
         std::memcpy(&pkt.timestamp, &buffer[offset], sizeof(pkt.timestamp));
         offset += sizeof(pkt.timestamp);
 
-        pkt.payload.assign(buffer.begin() + offset, buffer.end() - 2);
+        // Extract encrypted payload only for CONTROL & DATA PacketType, without CRC
+        if (pkt.type == PacketType::DATA || pkt.type == PacketType::CONTROL) {
+            std::vector<uint8_t> encrypted_payload(buffer.begin() + offset, buffer.end() - 2);
+            pkt.payload = decryptor.decrypt(encrypted_payload);
+        } else {
+            pkt.payload.assign(buffer.begin() + offset, buffer.end() - 2);
+        }
 
         uint16_t received_crc = (static_cast<uint16_t>(buffer[buffer.size() - 2]) << 8) | buffer[buffer.size() - 1];
         uint16_t calculated_crc = crc16(std::vector<uint8_t>(buffer.begin(), buffer.end() - 2));

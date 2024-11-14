@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "encryption_manager.hpp"
+
 namespace alice
 {
 
@@ -42,10 +44,12 @@ namespace alice
 
         Packet(uint32_t source_id, uint32_t destination_id, PacketType type, uint8_t priority, uint32_t sequence_number, const std::vector<uint8_t> &payload, uint16_t crc);
 
-        [[nodiscard]] std::vector<uint8_t> serialize() const;
+        [[nodiscard]] std::vector<uint8_t> serialize(const EncryptionManager& encryptor) const;
 
-        static Packet deserialize(const std::vector<uint8_t> &buffer);
+        static Packet deserialize(const std::vector<uint8_t> &buffer, const EncryptionManager& decryptor);
         static uint16_t crc16(const std::vector<uint8_t> &buffer);
+
+
     };
 
 }

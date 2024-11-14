@@ -9,6 +9,7 @@ add_library(alice
         device_meta/eci_position_calculator.cpp
         device_meta/position_table.cpp
         position_service/position_notifier.cpp
+        encryption_manager.cpp
 #        error_handler.cpp
 )
 

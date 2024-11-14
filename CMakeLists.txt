@@ -58,6 +58,7 @@ set(TEST_SOURCES
     test/test_main.cpp
     test/test_example.cpp
     test/test_packet.cpp
+    test/test_encryption_manager.cpp
 )
 
 add_executable(peer_bootstrap_node src/peer_bootstrap_node.cpp)
