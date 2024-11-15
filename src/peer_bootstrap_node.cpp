@@ -10,7 +10,6 @@ PeerBootstrapNode::PeerBootstrapNode(const uint32_t &id)
 void PeerBootstrapNode::connect()
 {
     Logger::log(LogLevel::INFO, "Connecting bootstrap node on " + host_ip_ + ":" + std::to_string(host_port_));
-    // Connection code here
     asio::ip::udp::endpoint endpoint(asio::ip::make_address(host_ip_), host_port_);
     socket_ = asio::ip::udp::socket(io_context_, endpoint.protocol());
     if (socket_.is_open())
@@ -59,10 +58,8 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
                                         std::to_string(remote_endpoint_.port()) +
                                         " Size: " + std::to_string(bytes_transferred));
 
-        // Process the data (placeholder)
         Logger::log(LogLevel::DEBUG, "Data: " + std::string(data.begin(), data.end()));
 
-        // Continue listening
         socket_.async_receive_from(
             asio::buffer(receive_buffer_), remote_endpoint_,
             [this](const asio::error_code &error, std::size_t bytes_transferred)
@@ -113,7 +110,6 @@ int main(int argc, char *argv[])
 
         Logger::log(LogLevel::INFO, "Bootstrap node is running. Press Ctrl+C to stop.");
 
-        // Keep the main thread alive
         std::this_thread::sleep_for(std::chrono::hours(24));
     }
     catch (const std::exception &e)

@@ -48,12 +48,6 @@ install(FILES
 
 export(PACKAGE AliceProtocol)
 
-# Main executable
-# add_executable(alice_simulation src/main.cpp)
-# target_link_libraries(alice_simulation PRIVATE ${Boost_LIBRARIES} alice)  # Use PRIVATE for keyword syntax
-# target_include_directories(alice_simulation PRIVATE include)  # Include header files
-
-
 set(TEST_SOURCES
     test/test_main.cpp
     test/test_example.cpp
@@ -68,7 +62,6 @@ add_executable(peer_edge_node src/peer_edge_node.cpp)
 target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES})
 
 add_executable(all_tests ${TEST_SOURCES})
-target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES})  # Use PRIVATE for keyword syntax
-
+target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES})
 enable_testing()
 add_test(NAME BoostTests COMMAND all_tests)
