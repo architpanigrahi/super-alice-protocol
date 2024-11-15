@@ -62,6 +62,10 @@ set(TEST_SOURCES
 
 add_executable(peer_bootstrap_node src/peer_bootstrap_node.cpp)
 target_link_libraries(peer_bootstrap_node PRIVATE alice ${Boost_LIBRARIES})  
+add_executable(peer_satellite_node src/peer_satellite_node.cpp)
+target_link_libraries(peer_satellite_node PRIVATE alice ${Boost_LIBRARIES})
+add_executable(peer_edge_node src/peer_edge_node.cpp)
+target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES})
 
 add_executable(all_tests ${TEST_SOURCES})
 target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES})  # Use PRIVATE for keyword syntax

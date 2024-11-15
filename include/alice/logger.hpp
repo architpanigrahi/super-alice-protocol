@@ -19,10 +19,11 @@ class Logger
 {
 public:
     static void log(LogLevel level, const std::string &message);
+    static void setLogFile(const std::string &log_file_path);
 
 private:
     static std::string getCurrentTime();
-
+    static std::string log_file_path_;
     Logger() = default;
 };
 
