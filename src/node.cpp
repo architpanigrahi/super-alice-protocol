@@ -16,8 +16,9 @@ namespace alice {
 
     void Node::sendPacket(const Packet& packet) const {
         std::vector<uint8_t> data = packet.serialize();
-        std::cout << "Node " << id_ << " sending packet to Node " << packet.destination_id
-              << " with message type " << static_cast<int>(packet.type) << std::endl;
+        Logger::log(LogLevel::INFO, "Node " + std::to_string(id_) + " sending packet to Node " +
+            std::to_string(packet.destination_id) + " with message type " +
+            std::to_string(static_cast<int>(packet.type)));
     }
 
     void Node::sendPacket(const Packet& packet) {
@@ -29,9 +30,9 @@ namespace alice {
 
         unacknowledged_packets_[packet_to_send.sequence_number] = packet_to_send;
 
-        std::cout << "Node " << id_ << " sent packet with sequence number "
-                << packet_to_send.sequence_number << " to Node "
-                << packet_to_send.destination_id << std::endl;
+        Logger::log(LogLevel::INFO, "Node " + std::to_string(id_) + " sent packet with sequence number " +
+            std::to_string(packet_to_send.sequence_number) + " to Node " +
+            std::to_string(packet_to_send.destination_id));
     }
 
     void Node::receivePacket(const std::vector<uint8_t>& data) {
@@ -39,7 +40,7 @@ namespace alice {
             Packet packet = Packet::deserialize(data, encryptor_);
             processPacket(packet);
         } catch (const std::exception& e) {
-            std::cerr << "Node " << id_ << " failed to deserialize packet: " << e.what() << std::endl;
+            Logger::log(LogLevel::ERROR, "Node " + std::to_string(id_) + " failed to deserialize packet: " + e.what());
         }
     }
 
@@ -81,10 +82,10 @@ namespace alice {
                 retransmitPacket(packet.sequence_number, packet.source_id);
                 break;
             case PacketType::CONTROL:
-                std::cout << "Processing CONTROL packet..." << std::endl;
+                Logger::log(LogLevel::INFO, "Processing CONTROL packet...");
             break;            
             default:
-                std::cerr << "Node " << id_ << " received unknown packet type." << std::endl;
+                Logger::log(LogLevel::ERROR, "Node " + std::to_string(id_) + " received unknown packet type.");
             break;
         }
     }
@@ -108,23 +109,20 @@ namespace alice {
             Packet packet_to_retransmit = unacknowledged_packets_[sequence_number];
             packet_to_retransmit.timestamp = static_cast<uint64_t>(std::time(nullptr));
             std::vector<uint8_t> data = packet_to_retransmit.serialize(encryptor_);
-            std::cout << "Node " << id_ << " retransmitted packet with sequence number "
-                    << sequence_number << " to Node " << destination_id << std::endl;
+
+            Logger::log(LogLevel::INFO, "Node " + std::to_string(id_) + " retransmitted packet with sequence number " +
+            std::to_string(sequence_number) + " to Node " + std::to_string(destination_id));
+
         } else {
-            std::cerr << "Node " << id_ << " has no record of packet with sequence number "
-                    << sequence_number << " to retransmit." << std::endl;
+            Logger::log(LogLevel::ERROR, "Node " + std::to_string(id_) + " has no record of packet with sequence number " +
+            std::to_string(sequence_number) + " to retransmit.");
         }
     }
 
     void Node::printPayload(const std::vector<uint8_t>& payload) {
-        std::cout << "Payload: ";
-        for (const auto& byte : payload) {
-            std::cout << static_cast<char>(byte);  // Convert each byte to char for display
-        }
-        std::cout << std::endl;
+        std::string payload_str(payload.begin(), payload.end());
+        Logger::log(LogLevel::INFO, "Payload: " + payload_str);
     }
-
-
 }
 
 
