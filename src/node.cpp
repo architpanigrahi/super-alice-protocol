@@ -2,61 +2,54 @@
 // Created by Archit Panigrahi on 05/11/2024.
 //
 
+#ifndef ALICE_NODE_HPP
+#define ALICE_NODE_HPP
 
-#include <alice/alice.hpp>
-#include <iostream>
-#include <semaphore>
+#include "packet.hpp"
+#include <cstdint>
+#include <string>
+#include <memory>
+#include <vector>
 
 namespace alice {
 
-    Node::Node(uint32_t id, std::string  address, uint16_t port)
-        : id_(id), address_(std::move(address)), port_(port) {
-    }
+    class Node {
+        public:
+            Node(uint32_t id, std::string  address, uint16_t port);
 
-    void Node::sendPacket(const Packet& packet) const {
-        std::vector<uint8_t> data = packet.serialize();
-        std::cout << "Node " << id_ << " sending packet to Node " << packet.destination_id
-              << " with message type " << static_cast<int>(packet.type) << std::endl;
-    }
+            void sendPacket(const Packet& packet) const;
 
-    void Node::receivePacket(const std::vector<uint8_t>& data) const {
-        Packet packet = Packet::deserialize(data);
-        processPacket(packet);
-    }
+            void receivePacket(const std::vector<uint8_t>& data) const;
 
-    void Node::processPacket(const Packet& packet) const {
-        std::cout << "Node " << id_ << " processing packet from Node " << packet.source_id
-                  << " with message type " << static_cast<int>(packet.type) << std::endl;
+            void processPacket(const Packet& packet) const;
 
-        switch (packet.type) {
-            case PacketType::DATA:
-                std::cout << "Processing DATA packet..." << std::endl;
-                printPayload(packet.payload);
-            break;
-            case PacketType::ACK:
-                std::cout << "Processing ACK packet..." << std::endl;
-            break;
-            case PacketType::NACK:
-                std::cout << "Processing NACK packet..." << std::endl;
-            break;
-            case PacketType::CONTROL:
-                std::cout << "Processing CONTROL packet..." << std::endl;
-            break;
-            default:
-                std::cerr << "Unknown packet type received." << std::endl;
-            break;
-        }
-    }
+            static void printPayload(const std::vector<uint8_t>& payload) ;
 
-    void Node::printPayload(const std::vector<uint8_t>& payload) {
-        std::cout << "Payload: ";
-        for (const auto& byte : payload) {
-            std::cout << static_cast<char>(byte);  // Convert each byte to char for display
-        }
-        std::cout << std::endl;
-    }
+            uint32_t getId() const { return id_; }
+
+            void sendACK(uint32_t sequence_number, uint32_t destination_id);
+            void sendNACK(uint32_t sequence_number, uint32_t destination_id);
+
+        private:
+            uint32_t id_;
+            std::string address_;
+            uint16_t port_;
+
+            uint32_t next_sequence_number_;
+            uint32_t expected_sequence_number_;
+
+            std::unordered_map<uint32_t, Packet> unacknowledged_packets_;
+            std::unordered_map<uint32_t, Packet> receive_buffer_;
+
+            void handlePacket(const Packet& packet);
+            void retransmitPacket(uint32_t sequence_number, uint32_t destination_id);
+//            std::shared_ptr<Router> router_;
+//            std::shared_ptr<ErrorHandler> error_handler_;
+
+
+    };
 
 
 }
 
-
+#endif //ALICE_NODE_HPP
