@@ -14,28 +14,21 @@ namespace alice {
         next_sequence_number_(0), expected_sequence_number_(0) {
     }
 
-    void Node::sendPacket(const Packet& packet) const {
-        std::vector<uint8_t> data = packet.serialize();
-        Logger::log(LogLevel::INFO, "Node " + std::to_string(id_) + " sending packet to Node " +
-            std::to_string(packet.destination_id) + " with message type " +
-            std::to_string(static_cast<int>(packet.type)));
-    }
-
-    void Node::sendPacket(const Packet& packet) {
+    void Node::sendPacket(const Packet& packet){
         Packet packet_to_send = packet;
         packet_to_send.sequence_number = next_sequence_number_++;
         packet_to_send.timestamp = static_cast<uint64_t>(std::time(nullptr));
 
         std::vector<uint8_t> data = packet_to_send.serialize(encryptor_);
 
-        unacknowledged_packets_[packet_to_send.sequence_number] = packet_to_send;
+        unacknowledged_packets_.emplace(packet_to_send.sequence_number, packet_to_send);
 
         Logger::log(LogLevel::INFO, "Node " + std::to_string(id_) + " sent packet with sequence number " +
             std::to_string(packet_to_send.sequence_number) + " to Node " +
             std::to_string(packet_to_send.destination_id));
     }
 
-    void Node::receivePacket(const std::vector<uint8_t>& data) {
+    void Node::receivePacket(const std::vector<uint8_t>& data){
         try {
             Packet packet = Packet::deserialize(data, encryptor_);
             processPacket(packet);
@@ -44,7 +37,7 @@ namespace alice {
         }
     }
 
-    void Node::processPacket(const Packet& packet) {
+    void Node::processPacket(const Packet& packet){
         if (packet.sequence_number == expected_sequence_number_) {
             expected_sequence_number_++;
             handlePacket(packet);
@@ -70,7 +63,7 @@ namespace alice {
         }
     }
 
-    void Node::handlePacket(const Packet& packet) {
+    void Node::handlePacket(const Packet& packet){
         switch (packet.type) {
             case PacketType::DATA:
                 printPayload(packet.payload);
@@ -105,8 +98,9 @@ namespace alice {
     }
 
     void Node::retransmitPacket(uint32_t sequence_number, uint32_t destination_id) {
-        if (unacknowledged_packets_.count(sequence_number)) {
-            Packet packet_to_retransmit = unacknowledged_packets_[sequence_number];
+        auto it = unacknowledged_packets_.find(sequence_number);
+        if (it != unacknowledged_packets_.end()) {
+            Packet packet_to_retransmit = it->second;
             packet_to_retransmit.timestamp = static_cast<uint64_t>(std::time(nullptr));
             std::vector<uint8_t> data = packet_to_retransmit.serialize(encryptor_);
 

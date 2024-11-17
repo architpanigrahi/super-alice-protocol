@@ -10,6 +10,8 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include "alice/encryption_manager.hpp"
+#include "logger.hpp"
 
 namespace alice {
 
@@ -17,11 +19,11 @@ namespace alice {
         public:
             Node(uint32_t id, std::string  address, uint16_t port);
 
-            void sendPacket(const Packet& packet) const;
+            void sendPacket(const Packet& packet);
 
-            void receivePacket(const std::vector<uint8_t>& data) const;
+            void receivePacket(const std::vector<uint8_t>& data);
 
-            void processPacket(const Packet& packet) const;
+            void processPacket(const Packet& packet);
 
             static void printPayload(const std::vector<uint8_t>& payload) ;
 
@@ -29,6 +31,8 @@ namespace alice {
 
             void sendACK(uint32_t sequence_number, uint32_t destination_id);
             void sendNACK(uint32_t sequence_number, uint32_t destination_id);
+            
+            EncryptionManager encryptor_;
 
         private:
             uint32_t id_;

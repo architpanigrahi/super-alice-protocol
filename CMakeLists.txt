@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.29)
 project(AliceProtocol VERSION 1.0 LANGUAGES C CXX)
 
+add_compile_options(-Wno-deprecated-declarations)
+
 include(FetchContent)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -13,12 +15,39 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(asio)
 
+cmake_policy(SET CMP0167 NEW) # Suppress Boost policy warning
+
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+find_package(OpenSSL REQUIRED)
 
-include_directories(${asio_SOURCE_DIR}/asio/include)
+# Add source directories
 add_subdirectory(src)
-include_directories(include test)
 
+# Add tests
+set(TEST_SOURCES
+    test/test_main.cpp
+    test/test_example.cpp
+    test/test_packet.cpp
+    test/test_encryption_manager.cpp
+)
+
+# Define executables
+add_executable(peer_bootstrap_node src/peer_bootstrap_node.cpp)
+target_link_libraries(peer_bootstrap_node PRIVATE alice ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
+
+add_executable(peer_satellite_node src/peer_satellite_node.cpp)
+target_link_libraries(peer_satellite_node PRIVATE alice ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
+
+add_executable(peer_edge_node src/peer_edge_node.cpp)
+target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
+
+add_executable(all_tests ${TEST_SOURCES})
+target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
+
+enable_testing()
+add_test(NAME BoostTests COMMAND all_tests)
+
+# Install rules
 install(TARGETS alice
         EXPORT aliceTargets
         LIBRARY DESTINATION lib
@@ -47,22 +76,3 @@ install(FILES
 )
 
 export(PACKAGE AliceProtocol)
-
-set(TEST_SOURCES
-    test/test_main.cpp
-    test/test_example.cpp
-    test/test_packet.cpp
-    test/test_encryption_manager.cpp
-)
-
-add_executable(peer_bootstrap_node src/peer_bootstrap_node.cpp)
-target_link_libraries(peer_bootstrap_node PRIVATE alice ${Boost_LIBRARIES})  
-add_executable(peer_satellite_node src/peer_satellite_node.cpp)
-target_link_libraries(peer_satellite_node PRIVATE alice ${Boost_LIBRARIES})
-add_executable(peer_edge_node src/peer_edge_node.cpp)
-target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES})
-
-add_executable(all_tests ${TEST_SOURCES})
-target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES})
-enable_testing()
-add_test(NAME BoostTests COMMAND all_tests)

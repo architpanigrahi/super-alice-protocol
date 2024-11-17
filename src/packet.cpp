@@ -8,6 +8,10 @@
 
 namespace alice
 {
+    Packet::Packet()
+        : source_id(0), destination_id(0), type(PacketType::UNKNOWN), priority(0), sequence_number(0), timestamp(static_cast<uint64_t>(std::time(nullptr))), crc(0) 
+    {
+    }
     Packet::Packet(uint32_t source_id, uint32_t destination_id, PacketType type, uint8_t priority, uint32_t sequence_number, const std::vector<uint8_t> &payload, uint16_t crc = 0)
         : source_id(source_id), destination_id(destination_id), type(type), priority(priority), sequence_number(sequence_number), timestamp(static_cast<uint64_t>(std::time(nullptr))),
           payload(payload), crc(crc)

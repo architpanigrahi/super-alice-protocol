@@ -23,7 +23,8 @@ namespace alice
         uint64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
         // Packet packet = Packet::create_position_update_packet(source_id_, destination_id, timestamp, x_, y_, z_);
         Packet packet = Packet(source_id_, destination_id, PacketType::DATA, 1, 0, std::vector<uint8_t>(), 0);
-        std::vector<uint8_t> serialized_data = packet.serialize();
+        EncryptionManager encryptor;
+        std::vector<uint8_t> serialized_data = packet.serialize(encryptor);
 
         asio::ip::udp::endpoint destination(asio::ip::make_address(destination_ip), port);
         socket_.send_to(asio::buffer(serialized_data), destination);
