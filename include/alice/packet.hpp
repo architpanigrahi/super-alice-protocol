@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "encryption_manager.hpp"
+
 namespace alice
 {
 
@@ -45,12 +47,15 @@ namespace alice
             const std::vector<uint8_t> &payload, uint16_t crc = 0,
             uint16_t fragment_id = 0, uint16_t fragment_index = 0, uint16_t total_fragments = 0);
 
-        [[nodiscard]] std::vector<uint8_t> serialize() const;
+        [[nodiscard]] std::vector<uint8_t> serialize(const EncryptionManager& encryptor) const;
 
-        static Packet deserialize(const std::vector<uint8_t> &buffer);
         [[nodiscard]] std::vector<Packet> fragment(uint16_t maxPayloadSize) const;
         static uint16_t crc16(const std::vector<uint8_t> &buffer);
         static Packet reassemble(const std::vector<Packet>& fragments);
+        static Packet deserialize(const std::vector<uint8_t> &buffer, const EncryptionManager& decryptor);
+        static uint16_t crc16(const std::vector<uint8_t> &buffer);
+
+
     };
 
 }
