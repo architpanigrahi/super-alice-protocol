@@ -16,9 +16,7 @@ add_library(alice
 # Link the include directory for public headers
 target_include_directories(alice
         PUBLIC
-        ${OPENSSL_INCLUDE_DIR}
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-        ${asio_SOURCE_DIR}/asio/include
         $<INSTALL_INTERFACE:include>
 )
 
