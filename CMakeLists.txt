@@ -13,6 +13,33 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(asio)
 
+message(STATUS "Detecting operating system...")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(STATUS "Operating System: Linux")
+    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+    set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
+    set(OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    message(STATUS "Operating System: macOS")
+    set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl@3)
+    set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
+    set(OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib)
+#elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+#    message(STATUS "Operating System: Windows")
+#    set(OPENSSL_ROOT_DIR "C:/OpenSSL-Win64")
+#    set(OPENSSL_LIBRARIES "${OPENSSL_ROOT_DIR}/lib")
+#    set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
+else()
+    message(FATAL_ERROR "Unsupported Operating System: ${CMAKE_SYSTEM_NAME}")
+endif()
+
+
+
+include_directories(${OPENSSL_INCLUDE_DIR})
+link_directories(${OPENSSL_LIBRARIES})
+
+find_package(OpenSSL REQUIRED)
+
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 include_directories(${asio_SOURCE_DIR}/asio/include)
@@ -63,6 +90,6 @@ add_executable(peer_edge_node src/peer_edge_node.cpp)
 target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES})
 
 add_executable(all_tests ${TEST_SOURCES})
-target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES})
+target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
 enable_testing()
 add_test(NAME BoostTests COMMAND all_tests)

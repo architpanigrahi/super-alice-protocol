@@ -36,18 +36,23 @@ namespace alice
         uint32_t sequence_number;
         uint64_t timestamp;
         uint16_t fragment_id;
+        uint16_t fragment_index;
         uint16_t total_fragments;
         uint16_t crc;
         uint16_t reserved;
         uint16_t payload_type;
         std::vector<uint8_t> payload;
 
-        Packet(uint32_t source_id, uint32_t destination_id, PacketType type, uint8_t priority, uint32_t sequence_number, const std::vector<uint8_t> &payload, uint16_t crc);
+        Packet(uint32_t source_id, uint32_t destination_id, PacketType type, uint8_t priority, uint32_t sequence_number,
+            const std::vector<uint8_t> &payload, uint16_t crc = 0, uint16_t payload_type = 0,
+            uint16_t fragment_id = 0, uint16_t fragment_index = 0, uint16_t total_fragments = 0);
 
         [[nodiscard]] std::vector<uint8_t> serialize(const EncryptionManager& encryptor) const;
 
-        static Packet deserialize(const std::vector<uint8_t> &buffer, const EncryptionManager& decryptor);
+        [[nodiscard]] std::vector<Packet> fragment(uint16_t maxPayloadSize) const;
         static uint16_t crc16(const std::vector<uint8_t> &buffer);
+        static Packet reassemble(const std::vector<Packet>& fragments);
+        static Packet deserialize(const std::vector<uint8_t> &buffer, const EncryptionManager& decryptor);
 
 
     };
