@@ -7,7 +7,7 @@
 
 BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
 {
-    alice::EncryptionManager::EncryptionManager encryption_obj;
+    alice::EncryptionManager encryption_obj;
     // Define the packet parameters
     uint32_t source_id = 12345;
     uint32_t destination_id = 54321;
