@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
     uint16_t crc = 0;
 
     alice::Packet original_packet(source_id, destination_id, type, priority, sequence_number, payload, crc);
-    alice::EncryptionManager encryptor;
+    alice::EncryptionManager encryptor = alice::EncryptionManager();
     std::vector<uint8_t> serialized_data = original_packet.serialize(encryptor);
     uint16_t original_packet_crc = (static_cast<uint16_t>(serialized_data[serialized_data.size() - 2]) << 8) | serialized_data[serialized_data.size() - 1];
 
