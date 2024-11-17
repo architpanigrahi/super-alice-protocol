@@ -52,7 +52,7 @@ namespace alice
                       reinterpret_cast<const uint8_t *>(&timestamp) + sizeof(timestamp));
 
         // Perform encryption only for CONTROL & DATA PacketType
-        if (type == PacketType::DATA || type == PacketType::CONTROL) {
+        if ((type == PacketType::DATA || type == PacketType::CONTROL) && priority == 255) {
             std::vector<uint8_t> encrypted_payload = encryptor.encrypt(payload);
             buffer.insert(buffer.end(), encrypted_payload.begin(), encrypted_payload.end());
         } else {
@@ -98,7 +98,7 @@ namespace alice
         offset += sizeof(pkt.timestamp);
 
         // Extract encrypted payload only for CONTROL & DATA PacketType, without CRC
-        if (pkt.type == PacketType::DATA || pkt.type == PacketType::CONTROL) {
+        if ((pkt.type == PacketType::DATA || pkt.type == PacketType::CONTROL) && pkt.priority == 255) {
             std::vector<uint8_t> encrypted_payload(buffer.begin() + offset, buffer.end() - 2);
             pkt.payload = decryptor.decrypt(encrypted_payload);
         } else {
@@ -134,6 +134,8 @@ namespace alice
     }
 
     Packet Packet::reassemble(const std::vector<Packet>& fragments) {
+        EncryptionManager encryption_obj;
+
         if (fragments.empty()) {
             throw std::invalid_argument("No fragments to reassemble.");
         }
@@ -158,7 +160,7 @@ namespace alice
             sortedFragments[0].type, sortedFragments[0].priority, sortedFragments[0].sequence_number,
             reassembledPayload, 0, sortedFragments[0].fragment_id, 0, 0);
 
-        std::vector<uint8_t> serialized_data = reassembledPacket.serialize();
+        std::vector<uint8_t> serialized_data = reassembledPacket.serialize(encryption_obj);
         uint16_t reassemled_packet_crc = (static_cast<uint16_t>(serialized_data[serialized_data.size() - 2]) << 8) | serialized_data[serialized_data.size() - 1];
 
         reassembledPacket.crc = reassemled_packet_crc;

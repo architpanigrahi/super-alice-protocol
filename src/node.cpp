@@ -8,19 +8,20 @@
 #include <semaphore>
 
 namespace alice {
+    EncryptionManager encryption_obj;
 
     Node::Node(uint32_t id, std::string  address, uint16_t port)
         : id_(id), address_(std::move(address)), port_(port) {
     }
 
     void Node::sendPacket(const Packet& packet) const {
-        std::vector<uint8_t> data = packet.serialize();
+        std::vector<uint8_t> data = packet.serialize(encryption_obj);
         std::cout << "Node " << id_ << " sending packet to Node " << packet.destination_id
               << " with message type " << static_cast<int>(packet.type) << std::endl;
     }
 
     void Node::receivePacket(const std::vector<uint8_t>& data) const {
-        Packet packet = Packet::deserialize(data);
+        Packet packet = Packet::deserialize(data, encryption_obj);
         processPacket(packet);
     }
 

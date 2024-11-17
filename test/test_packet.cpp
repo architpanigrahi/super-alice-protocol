@@ -2,10 +2,12 @@
 
 #include <boost/test/unit_test.hpp>
 #include <alice/packet.hpp>
+#include <alice/encryption_manager.hpp>
 #include <vector>
 
 BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
 {
+    alice::EncryptionManager::EncryptionManager encryption_obj;
     // Define the packet parameters
     uint32_t source_id = 12345;
     uint32_t destination_id = 54321;
@@ -21,19 +23,19 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
 
     alice::Packet original_packet(source_id, destination_id, type, priority, sequence_number, payload, crc, fragment_id, fragment_index, total_fragments);
 
-    std::vector<uint8_t> serialized_data = original_packet.serialize();
+    std::vector<uint8_t> serialized_data = original_packet.serialize(encryption_obj);
     uint16_t original_packet_crc = (static_cast<uint16_t>(serialized_data[serialized_data.size() - 2]) << 8) | serialized_data[serialized_data.size() - 1];
 
     std::vector<alice::Packet> fragments = original_packet.fragment(maxPayloadSize);
 
     std::vector<std::vector<uint8_t>> serializedFragments;
     for (auto& fragment : fragments) {
-        serializedFragments.push_back(fragment.serialize());
+        serializedFragments.push_back(fragment.serialize(encryption_obj));
     }
 
     std::vector<alice::Packet> receivedFragments;
     for (auto& data : serializedFragments) {
-        receivedFragments.push_back(alice::Packet::deserialize(data));
+        receivedFragments.push_back(alice::Packet::deserialize(data, encryption_obj));
     }
 
     alice::Packet deserialized_packet = alice::Packet::reassemble(receivedFragments);
