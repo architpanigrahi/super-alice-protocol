@@ -15,13 +15,13 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
     uint8_t priority = 1;
     uint32_t sequence_number = 100;
     std::vector<uint8_t> payload = {10, 20, 30, 40, 50};
-    uint16_t fragment_id = 15;
+    uint16_t payload_type = 0;
     uint16_t fragment_index = 0;
     uint16_t total_fragments= 0;
     uint16_t crc = 0;
     uint32_t maxPayloadSize = 1;
 
-    alice::Packet original_packet(source_id, destination_id, type, priority, sequence_number, payload, crc, fragment_id, fragment_index, total_fragments);
+    alice::Packet original_packet(source_id, destination_id, type, priority, sequence_number, payload, crc, payload_type);
 
     std::vector<uint8_t> serialized_data = original_packet.serialize(encryption_obj);
     uint16_t original_packet_crc = (static_cast<uint16_t>(serialized_data[serialized_data.size() - 2]) << 8) | serialized_data[serialized_data.size() - 1];
@@ -45,6 +45,7 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
     BOOST_CHECK_EQUAL(static_cast<int>(deserialized_packet.type), static_cast<int>(original_packet.type));
     BOOST_CHECK_EQUAL(deserialized_packet.priority, original_packet.priority);
     BOOST_CHECK_EQUAL(deserialized_packet.sequence_number, original_packet.sequence_number);
+    BOOST_CHECK_EQUAL(deserialized_packet.payload_type, original_packet.payload_type);
     BOOST_CHECK_EQUAL(deserialized_packet.fragment_id, original_packet.fragment_id);
     BOOST_CHECK_EQUAL(deserialized_packet.fragment_index, original_packet.fragment_index);
     BOOST_CHECK_EQUAL(deserialized_packet.timestamp, original_packet.timestamp);
