@@ -31,8 +31,6 @@ namespace alice {
 
             void sendACK(uint32_t sequence_number, uint32_t destination_id);
             void sendNACK(uint32_t sequence_number, uint32_t destination_id);
-            
-            EncryptionManager encryptor_;
 
         private:
             uint32_t id_;
@@ -47,6 +45,8 @@ namespace alice {
 
             void handlePacket(const Packet& packet);
             void retransmitPacket(uint32_t sequence_number, uint32_t destination_id);
+
+            EncryptionManager encryptor_;
 //            std::shared_ptr<Router> router_;
 //            std::shared_ptr<ErrorHandler> error_handler_;
 
