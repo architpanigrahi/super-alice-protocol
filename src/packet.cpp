@@ -56,7 +56,7 @@ namespace alice
                       reinterpret_cast<const uint8_t *>(&timestamp) + sizeof(timestamp));
 
         // Perform encryption only for CONTROL & DATA PacketType
-        if ((type == PacketType::DATA || type == PacketType::CONTROL) && priority == 255) {
+        if (( type == PacketType::DATA && priority == 255) || type == PacketType::CONTROL) {
             std::vector<uint8_t> encrypted_payload = encryptor.encrypt(payload);
             buffer.insert(buffer.end(), encrypted_payload.begin(), encrypted_payload.end());
         } else {
@@ -105,7 +105,7 @@ namespace alice
         offset += sizeof(pkt.timestamp);
 
         // Extract encrypted payload only for CONTROL & DATA PacketType, without CRC
-        if ((pkt.type == PacketType::DATA || pkt.type == PacketType::CONTROL) && pkt.priority == 255) {
+        if ((pkt.type == PacketType::DATA && pkt.priority == 255) || pkt.type == PacketType::CONTROL) {
             std::vector<uint8_t> encrypted_payload(buffer.begin() + offset, buffer.end() - 2);
             pkt.payload = decryptor.decrypt(encrypted_payload);
         } else {
