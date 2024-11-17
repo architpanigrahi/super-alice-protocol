@@ -23,14 +23,7 @@ namespace alice {
 
             void receivePacket(const std::vector<uint8_t>& data);
 
-            void processPacket(const Packet& packet);
-
-            static void printPayload(const std::vector<uint8_t>& payload) ;
-
             uint32_t getId() const { return id_; }
-
-            void sendACK(uint32_t sequence_number, uint32_t destination_id);
-            void sendNACK(uint32_t sequence_number, uint32_t destination_id);
 
         private:
             uint32_t id_;
@@ -46,7 +39,13 @@ namespace alice {
             void handlePacket(const Packet& packet);
             void retransmitPacket(uint32_t sequence_number, uint32_t destination_id);
 
+            void processPacket(const Packet& packet);
+            static void printPayload(const std::vector<uint8_t>& payload) ;
+
             EncryptionManager encryptor_;
+            void sendACK(uint32_t sequence_number, uint32_t destination_id);
+            void sendNACK(uint32_t sequence_number, uint32_t destination_id);
+
 //            std::shared_ptr<Router> router_;
 //            std::shared_ptr<ErrorHandler> error_handler_;
 
