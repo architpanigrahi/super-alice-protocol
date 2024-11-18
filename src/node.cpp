@@ -42,9 +42,14 @@ namespace alice {
             expected_sequence_number_++;
             handlePacket(packet);
 
-            while (receive_buffer_.count(expected_sequence_number_)) {
-                Packet next_packet = receive_buffer_[expected_sequence_number_];
-                receive_buffer_.erase(expected_sequence_number_);
+            while (true) {
+                auto it = receive_buffer_.find(expected_sequence_number_);
+                if (it == receive_buffer_.end()) {
+                    break;
+                }
+
+                Packet next_packet = it->second;
+                receive_buffer_.erase(it);
                 expected_sequence_number_++;
                 handlePacket(next_packet);
             }
@@ -52,7 +57,7 @@ namespace alice {
             sendACK(packet.sequence_number, packet.source_id);
 
         } else if (packet.sequence_number > expected_sequence_number_) {
-            receive_buffer_[packet.sequence_number] = packet;
+            receive_buffer_.emplace(packet.sequence_number, packet);
 
             for (uint32_t seq = expected_sequence_number_; seq < packet.sequence_number; ++seq) {
                 sendNACK(seq, packet.source_id);
