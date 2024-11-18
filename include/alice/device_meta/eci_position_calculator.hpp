@@ -7,15 +7,19 @@
 
 #include "orbital_parameters.hpp"
 
-namespace alice {
-    struct ECIPosition {
+namespace alice
+{
+    struct ECIPosition
+    {
         double x, y, z;
     };
 
-    class ECIPositionCalculator {
+    class ECIPositionCalculator
+    {
     public:
         static ECIPosition calculate_position(const OrbitalParameters &params, double time_since_epoch);
+        static double distance(const ECIPosition &pos1, const ECIPosition &pos2);
     };
 }
 
-#endif //ALICE_ECI_POSITION_HPP
+#endif // ALICE_ECI_POSITION_HPP

@@ -16,6 +16,8 @@ public:
     void startListening() override;
     void sendKeepAlive();
     void updatePosition();
+    void discoverPeers();
+    void startPeriodicDiscovery();
 
 private:
     alice::OrbitalParameters orbital_parameters_;

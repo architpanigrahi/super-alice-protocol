@@ -21,9 +21,11 @@ namespace alice
         NACK,
         CONTROL,
         ERROR,
-        KEEP_ALIVE
+        KEEP_ALIVE,
+        DISCOVERY,
+        DISCOVERY_RESPONSE
     };
-
+    std::ostream &operator<<(std::ostream &os, const PacketType &type);
     constexpr uint16_t CRC16_POLYNOMIAL = 0x8005;
     constexpr uint16_t CRC16_INITIAL = 0xFFFF;
 

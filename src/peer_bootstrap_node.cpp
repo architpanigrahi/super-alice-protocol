@@ -42,15 +42,6 @@ void PeerBootstrapNode::disconnect()
     }
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
-std::string bytesToHex(const std::vector<uint8_t> &data)
-{
-    std::ostringstream oss;
-    for (uint8_t byte : data)
-    {
-        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
-    }
-    return oss.str();
-}
 void PeerBootstrapNode::sendData(const alice::Packet &packet)
 {
     try
@@ -87,6 +78,33 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
             alice::Packet packet = alice::Packet::deserialize(raw_data, encryption_manager_);
             switch (packet.type)
             {
+            case alice::PacketType::DISCOVERY:
+            {
+                Logger::log(LogLevel::INFO, "Received DISCOVERY request from " + std::to_string(packet.source_id));
+
+                alice::ECIPosition requester_position = position_table_->get_position(packet.source_id);
+                double proximity_threshold = 1000000.0;
+                std::vector<uint8_t> response_payload;
+                for (const auto &[peer_id, position] : position_table_->get_table())
+                {
+                    if (peer_id != packet.source_id)
+                    {
+                        alice::ECIPosition position{position.x, position.y, position.z};
+                        double distance = alice::ECIPositionCalculator::distance(requester_position, position);
+                        if (distance <= proximity_threshold)
+                        {
+                            std::string ip_port = ip_table_->get_ip(peer_id);
+                            std::string entry = std::to_string(peer_id) + ":" + ip_port + ";";
+                            response_payload.insert(response_payload.end(), entry.begin(), entry.end());
+                        }
+                    }
+                }
+
+                alice::Packet response_packet(
+                    id_, packet.source_id, alice::PacketType::DISCOVERY_RESPONSE, 1, 0, response_payload);
+                sendData(response_packet);
+                break;
+            }
             case alice::PacketType::DATA:
             {
                 Logger::log(LogLevel::INFO, "Not implemented.");
