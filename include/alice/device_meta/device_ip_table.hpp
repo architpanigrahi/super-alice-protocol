@@ -8,26 +8,25 @@
 #include <string>
 #include <unordered_map>
 
-namespace alice {
+namespace alice
+{
 
-class DeviceIPTable {
+    class DeviceIPTable
+    {
 
-public:
+    public:
+        void update_ip(uint32_t id, const std::string &ip_address);
 
-    void update_ip(uint32_t id, const std::string& ip_address);
+        std::string get_ip(uint32_t id) const;
+        [[nodiscard]] std::vector<uint8_t> serialize() const;
+        void deserialize(const std::vector<uint8_t> &data);
+        void remove_ip(uint32_t id);
+        std::unordered_map<uint32_t, std::string> get_table() const;
 
-
-    std::string get_ip(uint32_t id) const;
-
-
-    void remove_ip(uint32_t id);
-
-private:
-    std::unordered_map<uint32_t, std::string> ip_table_;
-
-};
+    private:
+        std::unordered_map<uint32_t, std::string> ip_table_;
+    };
 
 }
 
-
-#endif //ALICE_DEVICE_IP_TABLE_HPP
+#endif // ALICE_DEVICE_IP_TABLE_HPP

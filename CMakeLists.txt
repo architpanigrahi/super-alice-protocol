@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.29)
 project(AliceProtocol VERSION 1.0 LANGUAGES C CXX)
 
 include(FetchContent)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -24,11 +24,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl@3)
     set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
     set(OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib)
-#elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-#    message(STATUS "Operating System: Windows")
-#    set(OPENSSL_ROOT_DIR "C:/OpenSSL-Win64")
-#    set(OPENSSL_LIBRARIES "${OPENSSL_ROOT_DIR}/lib")
-#    set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
 else()
     message(FATAL_ERROR "Unsupported Operating System: ${CMAKE_SYSTEM_NAME}")
 endif()
@@ -80,14 +75,15 @@ set(TEST_SOURCES
     test/test_example.cpp
     test/test_packet.cpp
     test/test_encryption_manager.cpp
+    test/test_iptable.cpp
 )
 
 add_executable(peer_bootstrap_node src/peer_bootstrap_node.cpp)
-target_link_libraries(peer_bootstrap_node PRIVATE alice ${Boost_LIBRARIES})  
+target_link_libraries(peer_bootstrap_node PRIVATE alice ${Boost_LIBRARIES} OpenSSL::Crypto)  
 add_executable(peer_satellite_node src/peer_satellite_node.cpp)
-target_link_libraries(peer_satellite_node PRIVATE alice ${Boost_LIBRARIES})
+target_link_libraries(peer_satellite_node PRIVATE alice ${Boost_LIBRARIES} OpenSSL::Crypto)
 add_executable(peer_edge_node src/peer_edge_node.cpp)
-target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES})
+target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES} OpenSSL::Crypto)
 
 add_executable(all_tests ${TEST_SOURCES})
 target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})

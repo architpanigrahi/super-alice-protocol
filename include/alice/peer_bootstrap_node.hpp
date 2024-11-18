@@ -13,7 +13,7 @@ public:
     void connect() override;
     void disconnect() override;
     void startListening() override;
-    void sendData(const std::vector<uint8_t> &data) override;
+    void sendData(const alice::Packet &packet) override;
     void receiveData(const asio::error_code &error, std::size_t bytes_transferred) override;
 };
 
