@@ -25,6 +25,8 @@ namespace alice {
             void retransmitPacket(uint32_t sequence_number, uint32_t destination_id);
             void sendACK(uint32_t sequence_number, uint32_t destination_id);
             void sendNACK(uint32_t sequence_number, uint32_t destination_id);
+            void processPacket(const Packet& packet);
+            static void printPayload(const std::vector<uint8_t>& payload) ;
 
             uint32_t getId() const { return id_; }
 
@@ -38,11 +40,6 @@ namespace alice {
 
             std::unordered_map<uint32_t, Packet> unacknowledged_packets_;
             std::unordered_map<uint32_t, Packet> receive_buffer_;
-
-        
-
-            void processPacket(const Packet& packet);
-            static void printPayload(const std::vector<uint8_t>& payload) ;
 
             EncryptionManager encryptor_;
 
