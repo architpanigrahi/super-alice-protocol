@@ -6,7 +6,9 @@
 #include "device_meta/position_table.hpp"
 #include "device_meta/orbital_parameters.hpp"
 #include "position_service/position_notifier.hpp"
+#include "packet.hpp"
 #include "logger.hpp"
+#include "encryption_manager.hpp"
 #include <string>
 #include <memory>
 #include <thread>
@@ -34,7 +36,7 @@ public:
     virtual void startListening() = 0;
     virtual void connect() = 0;
     virtual void disconnect() = 0;
-    virtual void sendData(const std::vector<uint8_t> &data) = 0;
+    virtual void sendData(const alice::Packet &packet) = 0;
     virtual void receiveData(const asio::error_code &error, std::size_t bytes_transferred) = 0;
 
 protected:
@@ -45,6 +47,7 @@ protected:
     std::string bootstrap_ip_;
     uint16_t bootstrap_port_;
     asio::io_context io_context_;
+    alice::EncryptionManager encryption_manager_;
     asio::ip::udp::socket socket_;
     bool listening_ = false;
     std::array<uint8_t, 1024> receive_buffer_;
@@ -52,9 +55,7 @@ protected:
     std::thread io_thread_;
 
     std::shared_ptr<alice::DeviceIPTable> ip_table_;
-    std::shared_ptr<alice::ECIPositionCalculator> position_calculator_;
     std::shared_ptr<alice::PositionTable> position_table_;
-    std::shared_ptr<alice::OrbitalParameters> orbital_params_;
     std::shared_ptr<alice::PositionNotifier> position_notifier_;
 };
 

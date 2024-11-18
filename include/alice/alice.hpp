@@ -14,7 +14,8 @@
 #include "device_meta/eci_position_calculator.hpp"
 #include "device_meta/position_table.hpp"
 #include "device_meta/device_ip_table.hpp"
+#include "logger.hpp"
 // #include "packet_service/packet_parser.hpp"
 #include "position_service/position_notifier.hpp"
 
-#endif //ALICE_HPP
+#endif // ALICE_HPP

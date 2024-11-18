@@ -42,35 +42,132 @@ void PeerBootstrapNode::disconnect()
     }
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
-
-void PeerBootstrapNode::sendData(const std::vector<uint8_t> &data)
+std::string bytesToHex(const std::vector<uint8_t> &data)
 {
-    Logger::log(LogLevel::DEBUG, "Sending data of size: " + std::to_string(data.size()));
-    // Data sending code here
+    std::ostringstream oss;
+    for (uint8_t byte : data)
+    {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+    }
+    return oss.str();
+}
+void PeerBootstrapNode::sendData(const alice::Packet &packet)
+{
+    try
+    {
+        std::vector<uint8_t> data = packet.serialize(encryption_manager_);
+        std::string ip;
+        std::string port;
+        std::istringstream ip_stream(ip_table_->get_ip(packet.destination_id));
+        if (std::getline(ip_stream, ip, ':') && std::getline(ip_stream, port))
+        {
+            asio::ip::udp::endpoint destination(asio::ip::make_address(ip), std::stoi(port));
+            socket_.send_to(asio::buffer(data), destination);
+            Logger::log(LogLevel::INFO, "Data sent to device at " + ip + ":" + port);
+        }
+        else
+        {
+            Logger::log(LogLevel::ERROR, "Error while sending data: Invalid IP address.");
+        }
+    }
+    catch (const std::exception &e)
+    {
+        Logger::log(LogLevel::ERROR, "Error while sending data: " + std::string(e.what()));
+    }
 }
 
 void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t bytes_transferred)
 {
     if (!error && bytes_transferred > 0)
     {
-        std::vector<uint8_t> data(receive_buffer_.begin(), receive_buffer_.begin() + bytes_transferred);
-        Logger::log(LogLevel::INFO, "Received data from " + remote_endpoint_.address().to_string() + ":" +
-                                        std::to_string(remote_endpoint_.port()) +
-                                        " Size: " + std::to_string(bytes_transferred));
+        std::vector<uint8_t> raw_data(receive_buffer_.begin(), receive_buffer_.begin() + bytes_transferred);
 
-        Logger::log(LogLevel::DEBUG, "Data: " + std::string(data.begin(), data.end()));
-
-        socket_.async_receive_from(
-            asio::buffer(receive_buffer_), remote_endpoint_,
-            [this](const asio::error_code &error, std::size_t bytes_transferred)
+        try
+        {
+            alice::Packet packet = alice::Packet::deserialize(raw_data, encryption_manager_);
+            switch (packet.type)
             {
-                receiveData(error, bytes_transferred);
-            });
+            case alice::PacketType::DATA:
+            {
+                Logger::log(LogLevel::INFO, "Not implemented.");
+                break;
+            }
+            case alice::PacketType::HANDSHAKE:
+            {
+                uint32_t id = packet.source_id;
+                std::string ip(packet.payload.begin(), packet.payload.end());
+                Logger::log(LogLevel::INFO, "Received IP address: " + ip + " for ID: " + std::to_string(id));
+                alice::ECIPosition position;
+                std::memcpy(&position, packet.payload.data() + ip.size(), sizeof(position));
+                Logger::log(LogLevel::INFO, "Registering device: ID=" + std::to_string(id) +
+                                                ", IP=" + ip +
+                                                ", Position=(" + std::to_string(position.x) + ", " +
+                                                std::to_string(position.y) + ", " +
+                                                std::to_string(position.z) + ")");
+                ip_table_->update_ip(id, ip);
+                position_table_->update_position(id, position.x, position.y, position.z);
+                Logger::log(LogLevel::INFO, "Device registered successfully.");
+                std::vector<uint8_t> payload_ip_table = ip_table_->serialize();
+                alice::Packet response_ip_table = alice::Packet(id_, id, alice::PacketType::ACK, 1, 0, payload_ip_table, 0, 1);
+                sendData(response_ip_table);
+                break;
+            }
+            case alice::PacketType::KEEP_ALIVE:
+            {
+                uint32_t id = packet.source_id;
+                Logger::log(LogLevel::INFO, "Received KEEP_ALIVE packet from " + std::to_string(id));
+                alice::ECIPosition position;
+                std::memcpy(&position, packet.payload.data(), sizeof(position));
+                Logger::log(LogLevel::INFO, "Received position: (" +
+                                                std::to_string(position.x) + ", " +
+                                                std::to_string(position.y) + ", " +
+                                                std::to_string(position.z) + ")");
+                position_table_->update_position(id, position.x, position.y, position.z);
+                Logger::log(LogLevel::INFO, "Position updated successfully.");
+                break;
+            }
+            case alice::PacketType::ACK:
+            {
+                Logger::log(LogLevel::INFO, "Not implemented.");
+                break;
+            }
+            case alice::PacketType::NACK:
+            {
+                Logger::log(LogLevel::INFO, "Not implemented.");
+                break;
+            }
+            case alice::PacketType::ERROR:
+            {
+                Logger::log(LogLevel::INFO, "Not implemented.");
+                break;
+            }
+            case alice::PacketType::CONTROL:
+            {
+                Logger::log(LogLevel::INFO, "Not implemented.");
+                break;
+            }
+            default:
+            {
+                Logger::log(LogLevel::ERROR, "Unknown packet type received." + std::to_string(static_cast<uint8_t>(packet.type)));
+                break;
+            }
+            }
+        }
+        catch (const std::exception &e)
+        {
+            Logger::log(LogLevel::ERROR, "Error while deserializing packet: " + std::string(e.what()));
+        }
     }
     else
     {
         Logger::log(LogLevel::ERROR, "Receive error: " + error.message());
     }
+    socket_.async_receive_from(
+        asio::buffer(receive_buffer_), remote_endpoint_,
+        [this](const asio::error_code &error, std::size_t bytes_transferred)
+        {
+            receiveData(error, bytes_transferred);
+        });
 }
 void PeerBootstrapNode::startListening()
 {

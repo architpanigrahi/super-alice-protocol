@@ -1,2 +1,2 @@
-#define BOOST_TEST_MODULE MyTestModule
+#define BOOST_TEST_MODULE AliceProtocolTests
 #include <boost/test/included/unit_test.hpp>

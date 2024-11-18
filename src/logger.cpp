@@ -30,4 +30,5 @@ void Logger::log(LogLevel level, const std::string &message)
     }
 
     logFile << Logger::getCurrentTime() << " " << levelStr << message << std::endl;
+    std::cout << Logger::getCurrentTime() << " " << levelStr << message << std::endl;
 }

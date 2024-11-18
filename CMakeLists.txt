@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.29)
 project(AliceProtocol VERSION 1.0 LANGUAGES C CXX)
 
 include(FetchContent)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -75,6 +75,7 @@ set(TEST_SOURCES
     test/test_example.cpp
     test/test_packet.cpp
     test/test_encryption_manager.cpp
+    test/test_iptable.cpp
 )
 
 add_executable(peer_bootstrap_node src/peer_bootstrap_node.cpp)
