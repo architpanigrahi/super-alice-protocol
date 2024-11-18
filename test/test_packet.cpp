@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
 
     std::vector<std::vector<uint8_t>> serializedFragments;
     for (auto& fragment : fragments) {
-        serializedFragments.push_back(fragment.serialize(encryption_obj));
+        serializedFragments.push_back(fragment.serialize(encryptor));
     }
 
     std::vector<alice::Packet> receivedFragments;
