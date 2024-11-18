@@ -28,6 +28,7 @@ namespace alice
         [[nodiscard]] std::vector<uint8_t> serialize() const;
         void deserialize(const std::vector<uint8_t> &data);
         std::unordered_map<uint32_t, PositionEntry> get_table() const;
+        ECIPosition get_position(uint32_t id) const;
 
     private:
         std::unordered_map<uint32_t, PositionEntry> table_;

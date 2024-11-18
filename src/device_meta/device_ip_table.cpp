@@ -50,10 +50,10 @@ namespace alice
             uint32_t ip_length = *reinterpret_cast<const uint32_t *>(&data[i]);
             i += sizeof(uint32_t);
 
-            // if (ip_length == 0 || i + ip_length > data.size())
-            // {
-            //     throw std::runtime_error("Malformed data: IP length exceeds buffer size" + std::to_string(i));
-            // }
+            if (ip_length == 0 || i + ip_length > data.size())
+            {
+                throw std::runtime_error("Malformed data: IP length exceeds buffer size" + std::to_string(i));
+            }
 
             std::string ip_port(data.begin() + i, data.begin() + i + ip_length);
             i += ip_length;

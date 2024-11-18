@@ -97,19 +97,15 @@ namespace alice
         offset += sizeof(pkt.fragment_id);
 
         std::memcpy(&pkt.fragment_index, &buffer[offset], sizeof(pkt.fragment_index));
-        Logger::log(LogLevel::DEBUG, "Deserialized fragment_index: " + std::to_string(pkt.fragment_index));
         offset += sizeof(pkt.fragment_index);
 
         std::memcpy(&pkt.total_fragments, &buffer[offset], sizeof(pkt.total_fragments));
-        Logger::log(LogLevel::DEBUG, "Deserialized total_fragments: " + std::to_string(pkt.total_fragments));
         offset += sizeof(pkt.total_fragments);
 
         std::memcpy(&pkt.timestamp, &buffer[offset], sizeof(pkt.timestamp));
-        Logger::log(LogLevel::DEBUG, "Deserialized timestamp: " + std::to_string(pkt.timestamp));
         offset += sizeof(pkt.timestamp);
 
-        size_t payload_length = buffer.size() - offset - 2; // Subtract 2 for CRC
-        Logger::log(LogLevel::DEBUG, "Payload length: " + std::to_string(payload_length));
+        size_t payload_length = buffer.size() - offset - 2;
 
         if ((pkt.type == PacketType::DATA && pkt.priority == 255) || pkt.type == PacketType::CONTROL)
         {
@@ -130,6 +126,42 @@ namespace alice
         pkt.crc = received_crc;
 
         return pkt;
+    }
+    std::ostream &operator<<(std::ostream &os, const alice::PacketType &type)
+    {
+        switch (type)
+        {
+        case alice::PacketType::DISCOVERY:
+            os << "DISCOVERY";
+            break;
+        case alice::PacketType::DISCOVERY_RESPONSE:
+            os << "DISCOVERY_RESPONSE";
+            break;
+        case alice::PacketType::DATA:
+            os << "DATA";
+            break;
+        case alice::PacketType::CONTROL:
+            os << "CONTROL";
+            break;
+        case alice::PacketType::HANDSHAKE:
+            os << "HANDSHAKE";
+            break;
+        case alice::PacketType::KEEP_ALIVE:
+            os << "KEEP_ALIVE";
+            break;
+        case alice::PacketType::ACK:
+            os << "ACK";
+            break;
+        case alice::PacketType::NACK:
+            os << "NACK";
+            break;
+        case alice::PacketType::ERROR:
+            os << "ERROR";
+            break;
+        default:
+            os << "UNKNOWN";
+        }
+        return os;
     }
 
     std::vector<Packet> Packet::fragment(uint16_t maxPayloadSize) const

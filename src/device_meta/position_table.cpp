@@ -14,13 +14,6 @@ namespace alice
         table_[id] = {x, y, z, std::chrono::system_clock::now()};
         Logger::log(LogLevel::INFO, "Position updated for ID: " + std::to_string(id));
         Logger::log(LogLevel::INFO, "Position: (" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")");
-        for (const auto &[id, entry] : table_)
-        {
-            Logger::log(LogLevel::DEBUG, "ID: " + std::to_string(id) +
-                                             ", Position: (" + std::to_string(entry.x) + ", " +
-                                             std::to_string(entry.y) + ", " + std::to_string(entry.z) + ")" +
-                                             ", Timestamp: " + std::to_string(std::chrono::duration_cast<std::chrono::seconds>(entry.timestamp.time_since_epoch()).count()));
-        }
     }
     std::vector<uint8_t> PositionTable::serialize() const
     {
@@ -34,6 +27,17 @@ namespace alice
             buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&entry.timestamp), reinterpret_cast<const uint8_t *>(&entry.timestamp) + sizeof(entry.timestamp));
         }
         return buffer;
+    }
+    ECIPosition PositionTable::get_position(const uint32_t id) const
+    {
+        if (table_.find(id) != table_.end())
+        {
+            return {table_.at(id).x, table_.at(id).y, table_.at(id).z};
+        }
+        else
+        {
+            throw std::runtime_error("ID not found in position table.");
+        }
     }
     void PositionTable::deserialize(const std::vector<uint8_t> &data)
     {

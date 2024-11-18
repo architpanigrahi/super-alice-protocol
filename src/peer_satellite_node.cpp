@@ -17,6 +17,7 @@ void PeerSatelliteNode::connect()
         Logger::log(LogLevel::DEBUG, "Socket is already open. Closing it.");
         socket_.close();
     }
+
     socket_.open(endpoint.protocol());
     socket_.bind(endpoint);
 }
@@ -73,21 +74,35 @@ void PeerSatelliteNode::startListening()
     io_thread_ = std::thread([this]
                              { io_context_.run(); });
 }
-std::string bytesToHex(const std::vector<uint8_t> &data)
+void PeerSatelliteNode::startPeriodicDiscovery()
 {
-    std::ostringstream oss;
-    for (uint8_t byte : data)
+    std::thread discovery_thread([this]()
+                                 {
+        while (true) {
+            discoverPeers();
+            std::this_thread::sleep_for(std::chrono::seconds(30));
+        } });
+    discovery_thread.detach();
+}
+
+void PeerSatelliteNode::discoverPeers()
+{
+    try
     {
-        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+        alice::Packet discovery_request(id_, 12345, alice::PacketType::DISCOVERY, 1, 0, {});
+        sendData(discovery_request);
+        Logger::log(LogLevel::INFO, "Sent DISCOVERY request to bootstrap node.");
     }
-    return oss.str();
+    catch (const std::exception &e)
+    {
+        Logger::log(LogLevel::ERROR, "Error while sending DISCOVERY request: " + std::string(e.what()));
+    }
 }
 void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t bytes_transferred)
 {
     if (!error && bytes_transferred > 0)
     {
         std::vector<uint8_t> raw_data(receive_buffer_.begin(), receive_buffer_.begin() + bytes_transferred);
-        Logger::log(LogLevel::DEBUG, "Bytes to hex receiving:" + bytesToHex(raw_data));
         try
         {
             alice::Packet packet = alice::Packet::deserialize(raw_data, encryption_manager_);
@@ -119,20 +134,59 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
+            case alice::PacketType::DISCOVERY_RESPONSE:
+            {
+                Logger::log(LogLevel::INFO, "Received DISCOVERY_RESPONSE from bootstrap node.");
+
+                std::string payload(packet.payload.begin(), packet.payload.end());
+                Logger::log(LogLevel::DEBUG, "Payload: " + payload);
+                std::istringstream peer_stream(payload);
+                std::string peer_entry;
+
+                while (std::getline(peer_stream, peer_entry, ';'))
+                {
+                    std::istringstream entry_stream(peer_entry);
+                    std::string id_str, ip, port_str;
+
+                    if (std::getline(entry_stream, id_str, ':') &&
+                        std::getline(entry_stream, ip, ':') &&
+                        std::getline(entry_stream, port_str))
+                    {
+
+                        try
+                        {
+                            uint32_t peer_id = static_cast<uint32_t>(std::stoi(id_str));
+                            uint16_t port = static_cast<uint16_t>(std::stoi(port_str));
+                            std::string ip_port = ip + ":" + std::to_string(port);
+
+                            ip_table_->update_ip(peer_id, ip_port);
+
+                            Logger::log(LogLevel::INFO, "Discovered peer: ID=" + std::to_string(peer_id) +
+                                                            ", IP=" + ip + ", Port=" + std::to_string(port));
+                        }
+                        catch (const std::exception &e)
+                        {
+                            Logger::log(LogLevel::ERROR, "Error parsing discovery response entry: " + peer_entry +
+                                                             ", Exception: " + std::string(e.what()));
+                        }
+                    }
+                    else
+                    {
+                        Logger::log(LogLevel::ERROR, "Malformed discovery response entry: " + peer_entry);
+                    }
+                }
+                break;
+            }
             case alice::PacketType::ACK:
             {
                 uint32_t id = packet.source_id;
-                Logger::log(LogLevel::INFO, "Received control packet from " + std::to_string(id));
+                Logger::log(LogLevel::INFO, "Received ACK packet from " + std::to_string(id));
                 if (packet.payload.size() > 0)
                 {
                     if (packet.payload_type == 1)
                     {
                         ip_table_->deserialize(packet.payload);
                         Logger::log(LogLevel::INFO, "IP table updated successfully.");
-                        for (const auto &[id, ip] : ip_table_->get_table())
-                        {
-                            Logger::log(LogLevel::DEBUG, "ID: " + std::to_string(id) + ", IP: " + ip);
-                        }
                     }
                 }
                 break;
@@ -201,6 +255,7 @@ void PeerSatelliteNode::sendKeepAlive()
         Logger::log(LogLevel::ERROR, "Error while sending KEEP_ALIVE: " + std::string(e.what()));
     }
 }
+#ifndef BUILD_TESTS
 int main(int argc, char *argv[])
 {
     if (argc != 6)
@@ -225,7 +280,6 @@ int main(int argc, char *argv[])
         satelliteNode.setBootstrapAddress(bootstrap_ip, bootstrap_port);
         satelliteNode.connect();
         satelliteNode.startListening();
-
         alice::ECIPosition position = {0.0, 0.0, 0.0};
         std::vector<uint8_t> payload(sizeof(alice::ECIPosition) + sizeof(std::string));
         std::string ip = host_ip + ":" + std::to_string(host_port);
@@ -234,7 +288,8 @@ int main(int argc, char *argv[])
 
         alice::Packet registrationPacket = alice::Packet(satelliteNode.getID(), 12345, alice::PacketType::HANDSHAKE, 255, 0, payload);
         satelliteNode.sendData(registrationPacket);
-        std::this_thread::sleep_for(std::chrono::seconds(3));
+        satelliteNode.startPeriodicDiscovery();
+
         bool running = true;
         while (running)
         {
@@ -251,3 +306,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+#endif

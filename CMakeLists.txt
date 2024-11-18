@@ -72,10 +72,13 @@ export(PACKAGE AliceProtocol)
 
 set(TEST_SOURCES
     test/test_main.cpp
+    src/peer.cpp
+    src/peer_satellite_node.cpp
     test/test_example.cpp
     test/test_packet.cpp
     test/test_encryption_manager.cpp
     test/test_iptable.cpp
+    test/test_discovery.cpp
 )
 
 add_executable(peer_bootstrap_node src/peer_bootstrap_node.cpp)
@@ -85,7 +88,9 @@ target_link_libraries(peer_satellite_node PRIVATE alice ${Boost_LIBRARIES} OpenS
 add_executable(peer_edge_node src/peer_edge_node.cpp)
 target_link_libraries(peer_edge_node PRIVATE alice ${Boost_LIBRARIES} OpenSSL::Crypto)
 
+
 add_executable(all_tests ${TEST_SOURCES})
+target_compile_definitions(all_tests PRIVATE BUILD_TESTS)
 target_link_libraries(all_tests PRIVATE alice ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
 enable_testing()
 add_test(NAME BoostTests COMMAND all_tests)
