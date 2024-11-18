@@ -20,8 +20,11 @@ namespace alice {
             Node(uint32_t id, std::string  address, uint16_t port);
 
             void sendPacket(const Packet& packet);
-
             void receivePacket(const std::vector<uint8_t>& data);
+            void handlePacket(const Packet& packet);
+            void retransmitPacket(uint32_t sequence_number, uint32_t destination_id);
+            void sendACK(uint32_t sequence_number, uint32_t destination_id);
+            void sendNACK(uint32_t sequence_number, uint32_t destination_id);
 
             uint32_t getId() const { return id_; }
 
@@ -36,15 +39,12 @@ namespace alice {
             std::unordered_map<uint32_t, Packet> unacknowledged_packets_;
             std::unordered_map<uint32_t, Packet> receive_buffer_;
 
-            void handlePacket(const Packet& packet);
-            void retransmitPacket(uint32_t sequence_number, uint32_t destination_id);
+        
 
             void processPacket(const Packet& packet);
             static void printPayload(const std::vector<uint8_t>& payload) ;
 
             EncryptionManager encryptor_;
-            void sendACK(uint32_t sequence_number, uint32_t destination_id);
-            void sendNACK(uint32_t sequence_number, uint32_t destination_id);
 
 //            std::shared_ptr<Router> router_;
 //            std::shared_ptr<ErrorHandler> error_handler_;
