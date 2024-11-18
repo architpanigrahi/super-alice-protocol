@@ -8,6 +8,7 @@
 #include <semaphore>
 
 namespace alice {
+    EncryptionManager encryption_obj;
 
     Node::Node(uint32_t id, std::string address, uint16_t port)
         : id_(id), address_(std::move(address)), port_(port),

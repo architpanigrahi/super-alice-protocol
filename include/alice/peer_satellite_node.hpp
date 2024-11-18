@@ -11,9 +11,17 @@ public:
 
     void connect() override;
     void disconnect() override;
-    void sendData(const std::vector<uint8_t> &data) override;
+    void sendData(const alice::Packet &packet) override;
     void receiveData(const asio::error_code &error, std::size_t bytes_transferred) override;
     void startListening() override;
+    void sendKeepAlive();
+    void updatePosition();
+    void discoverPeers();
+    void startPeriodicDiscovery();
+
+private:
+    alice::OrbitalParameters orbital_parameters_;
+    alice::ECIPosition position_;
 };
 
 #endif

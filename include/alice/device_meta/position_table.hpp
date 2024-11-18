@@ -9,26 +9,31 @@
 #include <unordered_map>
 #include <chrono>
 
-namespace alice {
+namespace alice
+{
 
-struct PositionEntry {
-    double x{}, y{}, z{};
-    std::chrono::time_point<std::chrono::system_clock> timestamp;
-};
+    struct PositionEntry
+    {
+        double x{}, y{}, z{};
+        std::chrono::time_point<std::chrono::system_clock> timestamp;
+    };
 
-class PositionTable {
+    class PositionTable
+    {
 
-public:
-    void update_position(uint32_t id, double x, double y, double z);
-    uint32_t get_closest_satellite_id(double x, double y, double z) const;
-    void remove_outdated_entries(std::chrono::seconds threshold);
+    public:
+        void update_position(uint32_t id, double x, double y, double z);
+        uint32_t get_closest_satellite_id(double x, double y, double z) const;
+        void remove_outdated_entries(std::chrono::seconds threshold);
+        [[nodiscard]] std::vector<uint8_t> serialize() const;
+        void deserialize(const std::vector<uint8_t> &data);
+        std::unordered_map<uint32_t, PositionEntry> get_table() const;
+        ECIPosition get_position(uint32_t id) const;
 
-private:
-    std::unordered_map<uint32_t, PositionEntry> table_;
-
-};
-
+    private:
+        std::unordered_map<uint32_t, PositionEntry> table_;
+    };
 
 }
 
-#endif //ALICE_POSITION_TABLE_HPP
+#endif // ALICE_POSITION_TABLE_HPP

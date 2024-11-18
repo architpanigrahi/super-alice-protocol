@@ -14,9 +14,9 @@ void PeerEdgeNode::receiveData(const asio::error_code &error, std::size_t bytes_
     Logger::log(LogLevel::DEBUG, "Receiving data...");
     // Data receiving code here
 }
-void PeerEdgeNode::sendData(const std::vector<uint8_t> &data)
+void PeerEdgeNode::sendData(const alice::Packet &packet)
 {
-    Logger::log(LogLevel::DEBUG, "Sending data of size: " + std::to_string(data.size()));
+    Logger::log(LogLevel::DEBUG, "Sending data of size: " + std::to_string(0));
     // Data sending code here
 }
 void PeerEdgeNode::connect()
