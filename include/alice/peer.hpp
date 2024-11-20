@@ -6,6 +6,8 @@
 #include "device_meta/position_table.hpp"
 #include "device_meta/orbital_parameters.hpp"
 #include "position_service/position_notifier.hpp"
+// #include "device_meta/peer_enums.hpp"
+#include "device_meta/device_type_table.hpp"
 #include "packet.hpp"
 #include "logger.hpp"
 #include "encryption_manager.hpp"
@@ -13,13 +15,6 @@
 #include <memory>
 #include <thread>
 #include <vector>
-
-enum class PeerType
-{
-    BOOTSTRAP_NODE,
-    SATELLITE,
-    EDGE_DEVICE
-};
 
 class Peer
 {
@@ -32,7 +27,12 @@ public:
 
     void setHostAddress(const std::string &host_ip, uint16_t host_port);
     void setBootstrapAddress(const std::string &bootstrap_ip, uint16_t bootstrap_port);
-
+    std::vector<uint8_t> convertIpToVector(std::string ip);
+    std::vector<uint8_t> convertIpPortToIpVector(std::string ip_port);
+    std::string convertIpPortVectorToIpPortString(std::vector<uint8_t> ip_vector, std::vector<uint8_t> port);
+    std::string buildIp(std::vector<uint8_t> ip_vector);
+    std::string getPortFromIpPort(std::string ip_port);
+    void sendHandshake();
     virtual void startListening() = 0;
     virtual void connect() = 0;
     virtual void disconnect() = 0;
@@ -49,6 +49,8 @@ protected:
     asio::io_context io_context_;
     alice::EncryptionManager encryption_manager_;
     asio::ip::udp::socket socket_;
+    alice::OrbitalParameters orbital_parameters_;
+    alice::ECIPosition position_;
     bool listening_ = false;
     std::array<uint8_t, 1024> receive_buffer_;
     asio::ip::udp::endpoint remote_endpoint_;
@@ -56,6 +58,7 @@ protected:
 
     std::shared_ptr<alice::DeviceIPTable> ip_table_;
     std::shared_ptr<alice::PositionTable> position_table_;
+    std::shared_ptr<alice::DeviceTypeTable> type_table_;
     std::shared_ptr<alice::PositionNotifier> position_notifier_;
 };
 

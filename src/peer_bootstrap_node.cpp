@@ -83,25 +83,49 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Received DISCOVERY request from " + std::to_string(packet.source_id));
 
                 alice::ECIPosition requester_position = position_table_->get_position(packet.source_id);
+                Logger::log(LogLevel::DEBUG, "Requester position: (" +
+                                                 std::to_string(requester_position.x) + ", " +
+                                                 std::to_string(requester_position.y) + ", " +
+                                                 std::to_string(requester_position.z) + ")");
                 double proximity_threshold = 1000000.0;
-                std::vector<uint8_t> response_payload;
-                for (const auto &[peer_id, position] : position_table_->get_table())
+                std::vector<uint8_t> response_payload((sizeof(uint32_t) * 2 + sizeof(uint16_t) + sizeof(uint8_t)) * (position_table_->get_table().size() - 1));
+                std::fill(response_payload.begin(), response_payload.end(), 0);
+                int index = 0;
+                for (const auto &[peer_id, positions] : position_table_->get_table())
                 {
                     if (peer_id != packet.source_id)
                     {
-                        alice::ECIPosition position{position.x, position.y, position.z};
+                        alice::ECIPosition position = {positions.x, positions.y, positions.z};
                         double distance = alice::ECIPositionCalculator::distance(requester_position, position);
+                        Logger::log(LogLevel::DEBUG, "Position of " + std::to_string(peer_id) + ": (" +
+                                                         std::to_string(position.x) + ", " +
+                                                         std::to_string(position.y) + ", " +
+                                                         std::to_string(position.z) + ")");
+                        Logger::log(LogLevel::DEBUG, "Distance from: " + std::to_string(packet.source_id) + " to: " + std::to_string(peer_id) + " distance: " + std::to_string(distance));
                         if (distance <= proximity_threshold)
                         {
                             std::string ip_port = ip_table_->get_ip(peer_id);
-                            std::string entry = std::to_string(peer_id) + ":" + ip_port + ";";
-                            response_payload.insert(response_payload.end(), entry.begin(), entry.end());
+                            std::vector<uint8_t> ip_vector = convertIpPortToIpVector(ip_port);
+                            uint16_t network_port = htons(std::stoi(getPortFromIpPort(ip_port)));
+                            int offset = (index) * (sizeof(uint32_t) * 2 + sizeof(uint16_t) + sizeof(uint8_t));
+                            std::vector<uint8_t> entry(sizeof(uint32_t) * 2 + sizeof(uint16_t) + sizeof(uint8_t));
+                            std::memcpy(entry.data(), &peer_id, sizeof(peer_id));
+                            uint8_t peer_type = static_cast<uint8_t>(type_table_->get_type(peer_id));
+                            std::memcpy(entry.data() + sizeof(peer_id), &peer_type, sizeof(peer_type));
+                            std::memcpy(entry.data() + sizeof(peer_id) + sizeof(peer_type), ip_vector.data(), ip_vector.size());
+                            std::memcpy(entry.data() + sizeof(peer_id) + sizeof(peer_type) + ip_vector.size(), &network_port, sizeof(network_port));
+                            std::memcpy(response_payload.data() + offset, entry.data(), entry.size());
+                            index++;
                         }
                     }
                 }
+                for (int i = 0; i < response_payload.size(); i++)
+                {
+                    Logger::log(LogLevel::DEBUG, "response_payload[" + std::to_string(i) + "]: " + std::to_string(response_payload[i]));
+                }
 
                 alice::Packet response_packet(
-                    id_, packet.source_id, alice::PacketType::DISCOVERY_RESPONSE, 1, 0, response_payload);
+                    id_, packet.source_id, alice::PacketType::DISCOVERY, 1, 0, response_payload);
                 sendData(response_packet);
                 break;
             }
@@ -113,20 +137,33 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
             case alice::PacketType::HANDSHAKE:
             {
                 uint32_t id = packet.source_id;
-                std::string ip(packet.payload.begin(), packet.payload.end());
-                Logger::log(LogLevel::INFO, "Received IP address: " + ip + " for ID: " + std::to_string(id));
+
+                std::vector<uint8_t> ip_vector(packet.payload.begin(), packet.payload.begin() + 4);
+                std::vector<uint8_t> port_vector(packet.payload.begin() + 4, packet.payload.begin() + 6);
+                std::string ip_port = convertIpPortVectorToIpPortString(ip_vector, port_vector);
+
+                uint8_t peer_type = *(packet.payload.data() + 6);
+
                 alice::ECIPosition position;
-                std::memcpy(&position, packet.payload.data() + ip.size(), sizeof(position));
-                Logger::log(LogLevel::INFO, "Registering device: ID=" + std::to_string(id) +
-                                                ", IP=" + ip +
-                                                ", Position=(" + std::to_string(position.x) + ", " +
+                std::memcpy(&position.x, packet.payload.data() + 7, sizeof(position.x));
+                std::memcpy(&position.y, packet.payload.data() + 15, sizeof(position.y));
+                std::memcpy(&position.z, packet.payload.data() + 23, sizeof(position.z));
+
+                Logger::log(LogLevel::INFO, "Received HANDSHAKE packet from " + std::to_string(id) +
+                                                " with IP_PORT: " + ip_port +
+                                                ", Peer Type: " + std::to_string(peer_type) +
+                                                ", Position: (" + std::to_string(position.x) + ", " +
                                                 std::to_string(position.y) + ", " +
                                                 std::to_string(position.z) + ")");
-                ip_table_->update_ip(id, ip);
+
+                ip_table_->update_ip(id, ip_port);
                 position_table_->update_position(id, position.x, position.y, position.z);
+                type_table_->update_type(id, static_cast<PeerType>(peer_type));
                 Logger::log(LogLevel::INFO, "Device registered successfully.");
+
                 std::vector<uint8_t> payload_ip_table = ip_table_->serialize();
-                alice::Packet response_ip_table = alice::Packet(id_, id, alice::PacketType::ACK, 1, 0, payload_ip_table, 0, 1);
+                alice::Packet response_ip_table = alice::Packet(
+                    id_, id, alice::PacketType::DISCOVERY, 1, 0, payload_ip_table, 0, 1);
                 sendData(response_ip_table);
                 break;
             }
@@ -136,32 +173,8 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Received KEEP_ALIVE packet from " + std::to_string(id));
                 alice::ECIPosition position;
                 std::memcpy(&position, packet.payload.data(), sizeof(position));
-                Logger::log(LogLevel::INFO, "Received position: (" +
-                                                std::to_string(position.x) + ", " +
-                                                std::to_string(position.y) + ", " +
-                                                std::to_string(position.z) + ")");
                 position_table_->update_position(id, position.x, position.y, position.z);
                 Logger::log(LogLevel::INFO, "Position updated successfully.");
-                break;
-            }
-            case alice::PacketType::ACK:
-            {
-                Logger::log(LogLevel::INFO, "Not implemented.");
-                break;
-            }
-            case alice::PacketType::NACK:
-            {
-                Logger::log(LogLevel::INFO, "Not implemented.");
-                break;
-            }
-            case alice::PacketType::ERROR:
-            {
-                Logger::log(LogLevel::INFO, "Not implemented.");
-                break;
-            }
-            case alice::PacketType::CONTROL:
-            {
-                Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
             default:

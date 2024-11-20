@@ -57,7 +57,7 @@ namespace alice
                       reinterpret_cast<const uint8_t *>(&timestamp) + sizeof(timestamp));
 
         std::vector<uint8_t> serialized_payload =
-            (type == PacketType::DATA && priority == 255) || type == PacketType::CONTROL
+            (type == PacketType::DATA && priority == 255)
                 ? encryptor.encrypt(payload)
                 : payload;
 
@@ -107,7 +107,7 @@ namespace alice
 
         size_t payload_length = buffer.size() - offset - 2;
 
-        if ((pkt.type == PacketType::DATA && pkt.priority == 255) || pkt.type == PacketType::CONTROL)
+        if (pkt.type == PacketType::DATA && pkt.priority == 255)
         {
             std::vector<uint8_t> encrypted_payload(buffer.begin() + offset, buffer.end() - 2);
             pkt.payload = decryptor.decrypt(encrypted_payload);
@@ -134,14 +134,8 @@ namespace alice
         case alice::PacketType::DISCOVERY:
             os << "DISCOVERY";
             break;
-        case alice::PacketType::DISCOVERY_RESPONSE:
-            os << "DISCOVERY_RESPONSE";
-            break;
         case alice::PacketType::DATA:
             os << "DATA";
-            break;
-        case alice::PacketType::CONTROL:
-            os << "CONTROL";
             break;
         case alice::PacketType::HANDSHAKE:
             os << "HANDSHAKE";
@@ -149,14 +143,14 @@ namespace alice
         case alice::PacketType::KEEP_ALIVE:
             os << "KEEP_ALIVE";
             break;
-        case alice::PacketType::ACK:
-            os << "ACK";
+        case alice::PacketType::ROUTE:
+            os << "ROUTE";
             break;
-        case alice::PacketType::NACK:
-            os << "NACK";
+        case alice::PacketType::RETRANSMIT:
+            os << "RETRANSMIT";
             break;
-        case alice::PacketType::ERROR:
-            os << "ERROR";
+        case alice::PacketType::PULL:
+            os << "PULL";
             break;
         default:
             os << "UNKNOWN";

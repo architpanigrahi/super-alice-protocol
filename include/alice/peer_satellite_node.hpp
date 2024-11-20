@@ -18,10 +18,6 @@ public:
     void updatePosition();
     void discoverPeers();
     void startPeriodicDiscovery();
-
-private:
-    alice::OrbitalParameters orbital_parameters_;
-    alice::ECIPosition position_;
 };
 
 #endif
