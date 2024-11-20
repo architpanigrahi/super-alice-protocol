@@ -162,43 +162,7 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
             {
                 Logger::log(LogLevel::INFO, "Received DISCOVERY request from " + std::to_string(packet.source_id));
 
-                alice::ECIPosition requester_position = position_table_->get_position(packet.source_id);
-                Logger::log(LogLevel::DEBUG, "Requester position: (" +
-                                                 std::to_string(requester_position.x) + ", " +
-                                                 std::to_string(requester_position.y) + ", " +
-                                                 std::to_string(requester_position.z) + ")");
-                double proximity_threshold = 1000000.0;
-                std::vector<uint8_t> response_payload((sizeof(uint32_t) * 2 + sizeof(uint16_t) + sizeof(uint8_t)) * (position_table_->get_table().size() - 1));
-                std::fill(response_payload.begin(), response_payload.end(), 0);
-                int index = 0;
-                for (const auto &[peer_id, positions] : position_table_->get_table())
-                {
-                    if (peer_id != packet.source_id)
-                    {
-                        alice::ECIPosition position = {positions.x, positions.y, positions.z};
-                        double distance = alice::ECIPositionCalculator::distance(requester_position, position);
-                        Logger::log(LogLevel::DEBUG, "Position of " + std::to_string(peer_id) + ": (" +
-                                                         std::to_string(position.x) + ", " +
-                                                         std::to_string(position.y) + ", " +
-                                                         std::to_string(position.z) + ")");
-                        Logger::log(LogLevel::DEBUG, "Distance from: " + std::to_string(packet.source_id) + " to: " + std::to_string(peer_id) + " distance: " + std::to_string(distance));
-                        if (distance <= proximity_threshold)
-                        {
-                            std::string ip_port = ip_table_->get_ip(peer_id);
-                            std::vector<uint8_t> ip_vector = convertIpPortToIpVector(ip_port);
-                            uint16_t network_port = htons(std::stoi(getPortFromIpPort(ip_port)));
-                            int offset = (index) * (sizeof(uint32_t) * 2 + sizeof(uint16_t) + sizeof(uint8_t));
-                            std::vector<uint8_t> entry(sizeof(uint32_t) * 2 + sizeof(uint16_t) + sizeof(uint8_t));
-                            std::memcpy(entry.data(), &peer_id, sizeof(peer_id));
-                            uint8_t peer_type = static_cast<uint8_t>(type_table_->get_type(peer_id));
-                            std::memcpy(entry.data() + sizeof(peer_id), &peer_type, sizeof(peer_type));
-                            std::memcpy(entry.data() + sizeof(peer_id) + sizeof(peer_type), ip_vector.data(), ip_vector.size());
-                            std::memcpy(entry.data() + sizeof(peer_id) + sizeof(peer_type) + ip_vector.size(), &network_port, sizeof(network_port));
-                            std::memcpy(response_payload.data() + offset, entry.data(), entry.size());
-                            index++;
-                        }
-                    }
-                }
+                std::vector<uint8_t> response_payload = serializeIpTable(packet.source_id);
                 Logger::log(LogLevel::DEBUG, "response_payload size: " + std::to_string(response_payload.size()));
                 for (int i = 0; i < response_payload.size(); i++)
                 {
