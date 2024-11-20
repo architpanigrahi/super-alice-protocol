@@ -83,7 +83,7 @@ void Peer::sendHandshake()
         {
             Logger::log(LogLevel::DEBUG, "Payload in Handshake[" + std::to_string(i) + "]: " + std::to_string(payload[i]));
         }
-        alice::Packet registrationPacket = alice::Packet(id_, 12345, alice::PacketType::HANDSHAKE, 1, 0, payload);
+        alice::Packet registrationPacket = alice::Packet(id_, 12345, alice::PacketType::HANDSHAKE, 255, 0, payload);
         sendData(registrationPacket);
         Logger::log(LogLevel::INFO, "Sent HANDSHAKE packet with position: (" +
                                         std::to_string(position_.x) + ", " +
