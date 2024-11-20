@@ -79,7 +79,11 @@ void Peer::sendHandshake()
         std::memcpy(payload.data() + 7, &position_.x, sizeof(position_.x));
         std::memcpy(payload.data() + 15, &position_.y, sizeof(position_.y));
         std::memcpy(payload.data() + 23, &position_.z, sizeof(position_.z));
-        alice::Packet registrationPacket = alice::Packet(id_, 12345, alice::PacketType::HANDSHAKE, 254, 0, payload);
+        for (int i = 0; i < payload.size(); i++)
+        {
+            Logger::log(LogLevel::DEBUG, "Payload in Handshake[" + std::to_string(i) + "]: " + std::to_string(payload[i]));
+        }
+        alice::Packet registrationPacket = alice::Packet(id_, 12345, alice::PacketType::HANDSHAKE, 1, 0, payload);
         sendData(registrationPacket);
         Logger::log(LogLevel::INFO, "Sent HANDSHAKE packet with position: (" +
                                         std::to_string(position_.x) + ", " +
