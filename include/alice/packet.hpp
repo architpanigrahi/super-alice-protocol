@@ -17,14 +17,11 @@ namespace alice
     {
         HANDSHAKE,
         DATA,
-        ACK,
-        NACK,
-        CONTROL,
-        ERROR,
-        KEEP_ALIVE,
         DISCOVERY,
-        DISCOVERY_RESPONSE,
-        ROUTE
+        KEEP_ALIVE,
+        ROUTE,
+        RETRANSMIT,
+        PULL
     };
     std::ostream &operator<<(std::ostream &os, const PacketType &type);
     constexpr uint16_t CRC16_POLYNOMIAL = 0x8005;

@@ -23,12 +23,7 @@ public:
     void updatePosition();
     void discoverPeers();
     void startPeriodicDiscovery();
-
     void getRoutingDetails();
-
-private:
-    alice::OrbitalParameters orbital_parameters_;
-    alice::ECIPosition position_;
 };
 
 #endif
