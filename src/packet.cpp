@@ -40,7 +40,6 @@ namespace alice
                       reinterpret_cast<const uint8_t *>(&payload_type),
                       reinterpret_cast<const uint8_t *>(&payload_type) + sizeof(payload_type));
 
-
         buffer.insert(buffer.end(),
                       reinterpret_cast<const uint8_t *>(&fragment_index),
                       reinterpret_cast<const uint8_t *>(&fragment_index) + sizeof(fragment_index));
@@ -54,7 +53,7 @@ namespace alice
                       reinterpret_cast<const uint8_t *>(&timestamp) + sizeof(timestamp));
 
         std::vector<uint8_t> serialized_payload =
-            (type == PacketType::DATA && priority == 255)
+            (priority == 255)
                 ? encryptor.encrypt(payload)
                 : payload;
 
@@ -101,7 +100,7 @@ namespace alice
 
         size_t payload_length = buffer.size() - offset - 2;
 
-        if (pkt.type == PacketType::DATA && pkt.priority == 255)
+        if (pkt.priority == 255)
         {
             std::vector<uint8_t> encrypted_payload(buffer.begin() + offset, buffer.end() - 2);
             pkt.payload = decryptor.decrypt(encrypted_payload);

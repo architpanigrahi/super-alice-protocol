@@ -241,7 +241,7 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
 
                 // std::vector<uint8_t> payload_ip_table = ip_table_->serialize();
                 alice::Packet response_ip_table = alice::Packet(
-                    id_, id, alice::PacketType::DISCOVERY, 1, 0, serializeIpTable(packet.source_id), 0, 1);
+                    id_, id, alice::PacketType::DISCOVERY, 1, 255, serializeIpTable(packet.source_id), 0, 1);
                 sendData(response_ip_table);
                 break;
             }
