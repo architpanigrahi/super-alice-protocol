@@ -12,7 +12,8 @@ public:
     void connect() override;
     void disconnect() override;
 
-    std::vector<uint32_t> deserializeRoutePayload(std::vector<uint8_t> &payload);
+    std::pair<std::vector<uint32_t>, std::vector<uint8_t>> deserializeRoutePayload(std::vector<uint8_t> &buffer);
+    std::vector<uint8_t> serializeRoutePacket(const std::vector<uint32_t> &routePayload, const std::vector<uint8_t> &dataPayload);
 
     void sendRouteData(const alice::Packet &packet);
 

@@ -43,11 +43,12 @@ void PeerBootstrapNode::disconnect()
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
 
-std::vector<uint8_t> PeerBootstrapNode::serializeRoutePacket(std::vector<uint32_t> optimal_route) {
+std::vector<uint8_t> PeerBootstrapNode::serializeRoutePacket(const std::vector<uint32_t>& optimal_route, std::vector<uint8_t> dataPayload) {
     std::vector<uint8_t> buffer;
     for (uint32_t route_id : optimal_route) {
         buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&route_id), reinterpret_cast<const uint8_t *>(&route_id) + sizeof(route_id));
     }
+    buffer.insert(buffer.end(), dataPayload.begin(), dataPayload.end());
     return buffer;
 }
 
@@ -187,10 +188,12 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
                 for (uint32_t val : optimal_route) {
                     Logger::log(LogLevel::INFO, "ROUTE INFO : " + std::to_string(val));
                 }
-                std::cout << std::endl;
+
+                std::vector<uint8_t> dataPayload = {1, 2, 3};
+
 
                 alice::Packet response_packet(
-                    id_, packet.source_id, alice::PacketType::ROUTE, 1, 0, serializeRoutePacket(optimal_route));
+                    id_, packet.source_id, alice::PacketType::ROUTE, 1, 0, serializeRoutePacket(optimal_route, dataPayload));
                 sendData(response_packet);
                 break;
 
