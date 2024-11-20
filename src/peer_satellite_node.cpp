@@ -119,75 +119,24 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
-            case alice::PacketType::CONTROL:
-            {
-                Logger::log(LogLevel::INFO, "Not implemented.");
-                break;
-            }
-            case alice::PacketType::NACK:
-            {
-                Logger::log(LogLevel::INFO, "Not implemented.");
-                break;
-            }
-            case alice::PacketType::ERROR:
-            {
-                Logger::log(LogLevel::INFO, "Not implemented.");
-                break;
-            }
-            case alice::PacketType::DISCOVERY_RESPONSE:
+            case alice::PacketType::DISCOVERY:
             {
                 Logger::log(LogLevel::INFO, "Received DISCOVERY_RESPONSE from bootstrap node.");
-
-                std::string payload(packet.payload.begin(), packet.payload.end());
-                Logger::log(LogLevel::DEBUG, "Payload: " + payload);
-                std::istringstream peer_stream(payload);
-                std::string peer_entry;
-
-                while (std::getline(peer_stream, peer_entry, ';'))
+                for (int i = 0; i < packet.payload.size(); i++)
                 {
-                    std::istringstream entry_stream(peer_entry);
-                    std::string id_str, ip, port_str;
-
-                    if (std::getline(entry_stream, id_str, ':') &&
-                        std::getline(entry_stream, ip, ':') &&
-                        std::getline(entry_stream, port_str))
-                    {
-
-                        try
-                        {
-                            uint32_t peer_id = static_cast<uint32_t>(std::stoi(id_str));
-                            uint16_t port = static_cast<uint16_t>(std::stoi(port_str));
-                            std::string ip_port = ip + ":" + std::to_string(port);
-
-                            ip_table_->update_ip(peer_id, ip_port);
-
-                            Logger::log(LogLevel::INFO, "Discovered peer: ID=" + std::to_string(peer_id) +
-                                                            ", IP=" + ip + ", Port=" + std::to_string(port));
-                        }
-                        catch (const std::exception &e)
-                        {
-                            Logger::log(LogLevel::ERROR, "Error parsing discovery response entry: " + peer_entry +
-                                                             ", Exception: " + std::string(e.what()));
-                        }
-                    }
-                    else
-                    {
-                        Logger::log(LogLevel::ERROR, "Malformed discovery response entry: " + peer_entry);
-                    }
+                    Logger::log(LogLevel::INFO, "Received DISCOVERY_RESPONSE from bootstrap node." + std::to_string(packet.payload[i]));
                 }
-                break;
-            }
-            case alice::PacketType::ACK:
-            {
-                uint32_t id = packet.source_id;
-                Logger::log(LogLevel::INFO, "Received ACK packet from " + std::to_string(id));
-                if (packet.payload.size() > 0)
+                for (int i = 0; i < packet.payload.size(); i += 11)
                 {
-                    if (packet.payload_type == 1)
-                    {
-                        ip_table_->deserialize(packet.payload);
-                        Logger::log(LogLevel::INFO, "IP table updated successfully.");
-                    }
+                    uint32_t peer_id = *reinterpret_cast<const uint32_t *>(&packet.payload[i]);
+                    uint8_t type = packet.payload[i + 4];
+                    PeerType peer_type = static_cast<PeerType>(type);
+                    std::string ip = std::to_string(packet.payload[i + 5]) + "." + std::to_string(packet.payload[i + 6]) + "." + std::to_string(packet.payload[i + 7]) + "." + std::to_string(packet.payload[i + 8]);
+                    uint16_t port = ntohs(*reinterpret_cast<const uint16_t *>(&packet.payload[i + 9]));
+                    std::string ip_port = ip + ":" + std::to_string(port);
+                    ip_table_->update_ip(peer_id, ip_port);
+                    type_table_->update_type(peer_id, peer_type);
+                    Logger::log(LogLevel::INFO, "Discovered peer: ID=" + std::to_string(peer_id) + "peer type: " + std::to_string(type) + ", IP=" + ip + ", Port=" + std::to_string(port));
                 }
                 break;
             }
@@ -280,14 +229,7 @@ int main(int argc, char *argv[])
         satelliteNode.setBootstrapAddress(bootstrap_ip, bootstrap_port);
         satelliteNode.connect();
         satelliteNode.startListening();
-        alice::ECIPosition position = {0.0, 0.0, 0.0};
-        std::vector<uint8_t> payload(sizeof(alice::ECIPosition) + sizeof(std::string));
-        std::string ip = host_ip + ":" + std::to_string(host_port);
-        std::memcpy(payload.data(), ip.c_str(), ip.size());
-        std::memcpy(payload.data() + ip.size(), &position, sizeof(position));
-
-        alice::Packet registrationPacket = alice::Packet(satelliteNode.getID(), 12345, alice::PacketType::HANDSHAKE, 255, 0, payload);
-        satelliteNode.sendData(registrationPacket);
+        satelliteNode.sendHandshake();
         satelliteNode.startPeriodicDiscovery();
 
         bool running = true;

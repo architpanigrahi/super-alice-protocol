@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(ReceiveDiscoveryResponse)
     std::string payload = "2:192.168.1.2:33002;3:192.168.1.3:33003;";
     std::vector<uint8_t> serialized_payload(payload.begin(), payload.end());
 
-    alice::Packet discovery_response(12345, 1, alice::PacketType::DISCOVERY_RESPONSE, 1, 0, serialized_payload);
+    alice::Packet discovery_response(12345, 1, alice::PacketType::DISCOVERY, 1, 0, serialized_payload);
     std::vector<uint8_t> serialized_response = discovery_response.serialize(satellite_node.getEncryptionManager());
     satellite_node.setReceivedDataForTest(serialized_response);
     BOOST_REQUIRE_NO_THROW(
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(HandleMalformedDiscoveryResponse)
     std::string payload = "2:192.168.1.2:33002;3:192.168.1.3;";
     std::vector<uint8_t> serialized_payload(payload.begin(), payload.end());
 
-    alice::Packet discovery_response(12345, 1, alice::PacketType::DISCOVERY_RESPONSE, 1, 0, serialized_payload);
+    alice::Packet discovery_response(12345, 1, alice::PacketType::DISCOVERY, 1, 0, serialized_payload);
     std::vector<uint8_t> serialized_response = discovery_response.serialize(satellite_node.getEncryptionManager());
     satellite_node.setReceivedDataForTest(serialized_response);
     BOOST_REQUIRE_NO_THROW(
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(HandleDuplicateDiscoveryResponse)
     std::string payload = "2:192.168.1.2:33002;2:192.168.1.2:33002;";
     std::vector<uint8_t> serialized_payload(payload.begin(), payload.end());
 
-    alice::Packet discovery_response(12345, 1, alice::PacketType::DISCOVERY_RESPONSE, 1, 0, serialized_payload);
+    alice::Packet discovery_response(12345, 1, alice::PacketType::DISCOVERY, 1, 0, serialized_payload);
 
     std::vector<uint8_t> serialized_response = discovery_response.serialize(satellite_node.getEncryptionManager());
     satellite_node.setReceivedDataForTest(serialized_response);
