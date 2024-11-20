@@ -43,14 +43,39 @@ void PeerSatelliteNode::disconnect()
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
 
-std::vector<uint32_t> PeerSatelliteNode::deserializeRoutePayload(std::vector<uint8_t> &payload)
-{
-    std::vector<uint32_t> routePayload;
-    for (size_t i = 0; i < payload.size(); i += sizeof(uint32_t))
-    {
-        routePayload.push_back(*reinterpret_cast<const uint32_t *>(&payload[i]));
+
+std::pair<std::vector<uint32_t>, std::vector<uint8_t>> PeerSatelliteNode::deserializeRoutePayload(std::vector<uint8_t> &buffer) {
+    std::vector<uint32_t> route;
+    std::vector<uint8_t> dataPayload;
+
+    size_t offset = 0;
+
+    while (offset + sizeof(uint32_t) <= buffer.size()) {
+        uint32_t route_id = *reinterpret_cast<const uint32_t *>(&buffer[offset]);
+        route.push_back(route_id);
+        offset += sizeof(uint32_t);
     }
-    return routePayload;
+
+    if (offset < buffer.size()) {
+        dataPayload.insert(dataPayload.end(), buffer.begin() + offset, buffer.end());
+    }
+
+    return {route, dataPayload};
+}
+
+std::vector<uint8_t> PeerSatelliteNode::serializeRoutePacket(const std::vector<uint32_t> &routePayload, const std::vector<uint8_t> &dataPayload) {
+    std::vector<uint8_t> buffer;
+
+    for (uint32_t routeID : routePayload) {
+        buffer.insert(buffer.end(),
+                      reinterpret_cast<const uint8_t *>(&routeID),
+                      reinterpret_cast<const uint8_t *>(&routeID) + sizeof(routeID));
+    }
+
+    // Add dataPayload to buffer
+    buffer.insert(buffer.end(), dataPayload.begin(), dataPayload.end());
+
+    return buffer;
 }
 
 void PeerSatelliteNode::sendRouteData(const alice::Packet &packet)
@@ -85,7 +110,7 @@ void PeerSatelliteNode::sendData(const alice::Packet &packet)
         std::vector<uint8_t> data = packet.serialize(encryption_manager_);
         Logger::log(LogLevel::DEBUG, "Sending data of size: " + std::to_string(data.size()));
         asio::ip::udp::endpoint destination;
-        if (packet.type == alice::PacketType::DISCOVERY || packet.type == alice::PacketType::HANDSHAKE)
+        if (packet.type == alice::PacketType::DISCOVERY || packet.type == alice::PacketType::HANDSHAKE || packet.type == alice::PacketType::PULL)
         {
             destination = asio::ip::udp::endpoint(asio::ip::make_address(bootstrap_ip_), bootstrap_port_);
         }
@@ -134,10 +159,8 @@ void PeerSatelliteNode::startPeriodicDiscovery()
     discovery_thread.detach();
 }
 
-void PeerSatelliteNode::getRoutingDetails()
-{
-    alice::Packet discovery_request(id_, 1000000003, alice::PacketType::ROUTE, 1, 0, {});
-    sendData(discovery_request);
+void PeerSatelliteNode::getRoutingDetails(const alice::Packet &packet) {
+    sendData(packet);
     Logger::log(LogLevel::INFO, "GET ROUTE request to bootstrap node.");
 }
 
@@ -179,15 +202,15 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
-            case alice::PacketType::ROUTE:
-            {
+            case alice::PacketType::PULL: {
+                getRoutingDetails(packet);
+                break;
+            }
+            case alice::PacketType::ROUTE: {
                 Logger::log(LogLevel::INFO, "Received Route Info from Bootstrap");
 
-                // Deserialize the route payload into a vector of satellite IDs
-                std::vector<uint32_t> routePayload = deserializeRoutePayload(packet.payload);
-
-                if (routePayload.empty())
-                {
+                auto [routePayload, dataPayload] = deserializeRoutePayload(packet.payload);
+                if (routePayload.empty() || routePayload.size() == 1) {
                     Logger::log(LogLevel::ERROR, "Route payload is empty. Cannot proceed with routing.");
                     break;
                 }
@@ -198,41 +221,31 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                     Logger::log(LogLevel::DEBUG, "Satellite ID in route: " + std::to_string(satelliteID));
                 }
 
-                if (routePayload.size() == 1)
-                {
-                    // If there is only one satellite in the route, send a DATA packet to it
+                if (routePayload.size() == 2) {
+                    routePayload.erase(routePayload.begin()); 
                     uint32_t targetSatelliteID = routePayload[0];
 
                     Logger::log(LogLevel::INFO, "Only one satellite in route. Sending DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
 
-                    // Construct the payload {1, 2, 3}
-                    std::vector<uint8_t> dataPayload = {1, 2, 3};
 
-                    // Create a DATA packet
                     alice::Packet dataPacket(
                         id_,
                         targetSatelliteID,
                         alice::PacketType::DATA,
-                        1, // version
-                        0, // flags
-                        dataPayload);
+                        1,
+                        0,
+                        dataPayload
+                    );
 
-                    // Send the DATA packet
                     sendRouteData(dataPacket);
 
                     Logger::log(LogLevel::INFO, "Sent DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
-                }
-                else
-                {
-                    // Intermediate hop - forward the packet to the next satellite in the route
-                    uint32_t nextSatelliteID = routePayload[0]; // Assuming the first ID in the list is the next hop
-                    routePayload.erase(routePayload.begin());   // Remove the current satellite from the route
+                } else {
+                    routePayload.erase(routePayload.begin()); 
+                    uint32_t nextSatelliteID = routePayload[0]; 
 
-                    // Serialize the updated route payload
-                    std::vector<uint8_t> updatedPayload(routePayload.size() * sizeof(uint32_t));
-                    std::memcpy(updatedPayload.data(), routePayload.data(), updatedPayload.size());
+                    std::vector<uint8_t> updatedPayload = serializeRoutePacket(routePayload, dataPayload);
 
-                    // Create a new packet with the updated route
                     alice::Packet forwardPacket(
                         id_,
                         nextSatelliteID,
@@ -241,7 +254,6 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                         0,
                         updatedPayload);
 
-                    // Send the packet to the next satellite
                     sendRouteData(forwardPacket);
                     Logger::log(LogLevel::INFO, "Forwarded route packet to Satellite ID=" + std::to_string(nextSatelliteID));
                 }
