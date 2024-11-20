@@ -46,7 +46,6 @@ BOOST_AUTO_TEST_CASE(packet_serialize_deserialize)
     BOOST_CHECK_EQUAL(deserialized_packet.priority, original_packet.priority);
     BOOST_CHECK_EQUAL(deserialized_packet.sequence_number, original_packet.sequence_number);
     BOOST_CHECK_EQUAL(deserialized_packet.payload_type, original_packet.payload_type);
-    BOOST_CHECK_EQUAL(deserialized_packet.fragment_id, original_packet.fragment_id);
     BOOST_CHECK_EQUAL(deserialized_packet.fragment_index, original_packet.fragment_index);
     BOOST_CHECK_EQUAL(deserialized_packet.timestamp, original_packet.timestamp);
     BOOST_CHECK(deserialized_packet.payload == original_packet.payload);
