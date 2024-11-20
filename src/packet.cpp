@@ -10,10 +10,10 @@
 namespace alice
 {
     Packet::Packet(uint32_t source_id, uint32_t destination_id, PacketType type, uint8_t priority, uint32_t sequence_number,
-                   const std::vector<uint8_t> &payload, uint16_t crc, uint16_t payload_type, uint16_t fragment_id, uint16_t fragment_index, uint16_t total_fragments)
+                   const std::vector<uint8_t> &payload, uint16_t crc, uint16_t payload_type, uint16_t fragment_index, uint16_t total_fragments)
         : source_id(source_id), destination_id(destination_id), type(type), priority(priority), sequence_number(sequence_number),
           timestamp(static_cast<uint64_t>(std::time(nullptr))),
-          payload(payload), crc(crc), payload_type(payload_type), fragment_id(fragment_id), fragment_index(fragment_index), total_fragments(total_fragments)
+          payload(payload), crc(crc), payload_type(payload_type), fragment_index(fragment_index), total_fragments(total_fragments)
     {
     }
 
@@ -40,9 +40,6 @@ namespace alice
                       reinterpret_cast<const uint8_t *>(&payload_type),
                       reinterpret_cast<const uint8_t *>(&payload_type) + sizeof(payload_type));
 
-        buffer.insert(buffer.end(),
-                      reinterpret_cast<const uint8_t *>(&fragment_id),
-                      reinterpret_cast<const uint8_t *>(&fragment_id) + sizeof(fragment_id));
 
         buffer.insert(buffer.end(),
                       reinterpret_cast<const uint8_t *>(&fragment_index),
@@ -92,9 +89,6 @@ namespace alice
 
         std::memcpy(&pkt.payload_type, &buffer[offset], sizeof(pkt.payload_type));
         offset += sizeof(pkt.payload_type);
-
-        std::memcpy(&pkt.fragment_id, &buffer[offset], sizeof(pkt.fragment_id));
-        offset += sizeof(pkt.fragment_id);
 
         std::memcpy(&pkt.fragment_index, &buffer[offset], sizeof(pkt.fragment_index));
         offset += sizeof(pkt.fragment_index);
@@ -171,7 +165,7 @@ namespace alice
             std::vector<uint8_t> fragmentPayload(payload.begin() + start, payload.begin() + end);
 
             Packet fragment(source_id, destination_id, type, priority, sequence_number, fragmentPayload, crc,
-                            payload_type, fragment_id, i, total);
+                            payload_type, i, total);
             fragments.push_back(fragment);
         }
         return fragments;
@@ -189,15 +183,15 @@ namespace alice
         std::vector<Packet> sortedFragments = fragments;
         std::sort(sortedFragments.begin(), sortedFragments.end(),
                   [](const Packet &a, const Packet &b)
-                  { return a.fragment_id < b.fragment_id; });
+                  { return a.fragment_index < b.fragment_index; });
 
-        uint32_t expected_id = sortedFragments[0].fragment_id;
+        uint32_t expected_id = sortedFragments[0].sequence_number;
         uint8_t expected_total = sortedFragments[0].total_fragments;
         std::vector<uint8_t> reassembledPayload;
 
         for (const auto &fragment : sortedFragments)
         {
-            if (fragment.fragment_id != expected_id || fragment.total_fragments != expected_total)
+            if (fragment.sequence_number != expected_id || fragment.total_fragments != expected_total)
             {
                 Logger::log(LogLevel::ERROR, "Fragments mismatch: unable to reassemble.");
             }
@@ -207,7 +201,7 @@ namespace alice
         Packet reassembledPacket(
             sortedFragments[0].source_id, sortedFragments[0].destination_id,
             sortedFragments[0].type, sortedFragments[0].priority, sortedFragments[0].sequence_number,
-            reassembledPayload, 0, sortedFragments[0].payload_type, sortedFragments[0].fragment_id, 0, 0);
+            reassembledPayload, 0, sortedFragments[0].payload_type, 0, 0);
 
         std::vector<uint8_t> serialized_data = reassembledPacket.serialize(encryption_obj);
         uint16_t reassemled_packet_crc = (static_cast<uint16_t>(serialized_data[serialized_data.size() - 2]) << 8) | serialized_data[serialized_data.size() - 1];

@@ -42,6 +42,15 @@ void PeerBootstrapNode::disconnect()
     }
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
+
+std::vector<uint8_t> PeerBootstrapNode::serializeRoutePacket(std::vector<uint32_t> optimal_route) {
+    std::vector<uint8_t> buffer;
+    for (uint32_t route_id : optimal_route) {
+        buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&route_id), reinterpret_cast<const uint8_t *>(&route_id) + sizeof(route_id));
+    }
+    return buffer;
+}
+
 void PeerBootstrapNode::sendData(const alice::Packet &packet)
 {
     try
@@ -67,6 +76,37 @@ void PeerBootstrapNode::sendData(const alice::Packet &packet)
     }
 }
 
+uint32_t PeerBootstrapNode::greedyForwarding(uint32_t source_id, std::vector<uint32_t> optimal_route) {
+    alice::ECIPosition requester_position = position_table_->get_position(source_id);
+    Logger::log(LogLevel::INFO, "SOURCE " + std::to_string(source_id) + "POSITION " + std::to_string(requester_position.x) + ":" + std::to_string(requester_position.y) + ":" + std::to_string(requester_position.z));
+
+
+    double proximity_threshold = 1000000.0;
+    uint32_t nextHop = -1;
+    double minDistance = std::numeric_limits<double>::max();
+    for (const auto &[peer_id, positions] : position_table_->get_table())
+    {
+        auto it = std::find(optimal_route.begin(), optimal_route.end(), peer_id);
+        if (source_id != peer_id)
+        {
+            alice::ECIPosition position = {positions.x, positions.y, positions.z};
+            Logger::log(LogLevel::INFO, "DEST " + std::to_string(peer_id) + "POSITION " + std::to_string(position.x) + ":" + std::to_string(position.y) + ":" + std::to_string(position.z));
+            double distance = alice::ECIPositionCalculator::distance(requester_position, position);
+            Logger::log(LogLevel::INFO, "Received DISCOVERY request from " + std::to_string(source_id) + ":" + std::to_string(distance) + " proximity threshold." + std::to_string(peer_id));
+            if ((distance < minDistance) && (it == optimal_route.end()))
+            {
+                minDistance = distance;
+                nextHop = peer_id;
+            }
+            else {
+                return nextHop;
+            }
+        }
+    }
+    Logger::log(LogLevel::INFO, "PATH FROM:" + std::to_string(source_id) + " NEXT HOP:" + std::to_string(nextHop));
+    return nextHop;
+}
+
 void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t bytes_transferred)
 {
     if (!error && bytes_transferred > 0)
@@ -78,8 +118,7 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
             alice::Packet packet = alice::Packet::deserialize(raw_data, encryption_manager_);
             switch (packet.type)
             {
-            case alice::PacketType::DISCOVERY:
-            {
+            case alice::PacketType::DISCOVERY: {
                 Logger::log(LogLevel::INFO, "Received DISCOVERY request from " + std::to_string(packet.source_id));
 
                 alice::ECIPosition requester_position = position_table_->get_position(packet.source_id);
@@ -129,7 +168,35 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
                 sendData(response_packet);
                 break;
             }
-            case alice::PacketType::DATA:
+                case alice::PacketType::ROUTE: {
+                std::vector<uint32_t> optimal_route;
+                uint32_t peer_id = packet.source_id;
+                while (peer_id != packet.destination_id) {
+                    uint32_t nextHopID = greedyForwarding(peer_id, optimal_route);
+                    optimal_route.push_back(peer_id);
+                    if (nextHopID == -1) {
+                        Logger::log(LogLevel::ERROR, "Packet dropped: No suitable neighbor found.");
+                        break;
+                    }
+                    peer_id = nextHopID;
+                }
+                if (peer_id == packet.destination_id) {
+                    optimal_route.push_back(packet.destination_id);  // Add the destination to the path
+                }
+
+                for (uint32_t val : optimal_route) {
+                    Logger::log(LogLevel::INFO, "ROUTE INFO : " + std::to_string(val));
+                }
+                std::cout << std::endl;
+
+                alice::Packet response_packet(
+                    id_, packet.source_id, alice::PacketType::ROUTE, 1, 0, serializeRoutePacket(optimal_route));
+                sendData(response_packet);
+                break;
+
+            }
+
+                case alice::PacketType::DATA:
             {
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;

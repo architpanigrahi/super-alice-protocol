@@ -14,6 +14,11 @@ public:
     void disconnect() override;
     void startListening() override;
     void sendData(const alice::Packet &packet) override;
+
+    [[nodiscard]] std::vector<uint8_t> serializeRoutePacket(std::vector<uint32_t> optimal_route);
+
+    uint32_t greedyForwarding(uint32_t source_id, std::vector<uint32_t> optimal_route);
+
     void receiveData(const asio::error_code &error, std::size_t bytes_transferred) override;
 };
 
