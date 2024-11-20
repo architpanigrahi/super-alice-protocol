@@ -43,30 +43,34 @@ void PeerSatelliteNode::disconnect()
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
 
-
-std::pair<std::vector<uint32_t>, std::vector<uint8_t>> PeerSatelliteNode::deserializeRoutePayload(std::vector<uint8_t> &buffer) {
+std::pair<std::vector<uint32_t>, std::vector<uint8_t>> PeerSatelliteNode::deserializeRoutePayload(std::vector<uint8_t> &buffer)
+{
     std::vector<uint32_t> route;
     std::vector<uint8_t> dataPayload;
 
     size_t offset = 0;
 
-    while (offset + sizeof(uint32_t) <= buffer.size()) {
+    while (offset + sizeof(uint32_t) <= buffer.size())
+    {
         uint32_t route_id = *reinterpret_cast<const uint32_t *>(&buffer[offset]);
         route.push_back(route_id);
         offset += sizeof(uint32_t);
     }
 
-    if (offset < buffer.size()) {
+    if (offset < buffer.size())
+    {
         dataPayload.insert(dataPayload.end(), buffer.begin() + offset, buffer.end());
     }
 
     return {route, dataPayload};
 }
 
-std::vector<uint8_t> PeerSatelliteNode::serializeRoutePacket(const std::vector<uint32_t> &routePayload, const std::vector<uint8_t> &dataPayload) {
+std::vector<uint8_t> PeerSatelliteNode::serializeRoutePacket(const std::vector<uint32_t> &routePayload, const std::vector<uint8_t> &dataPayload)
+{
     std::vector<uint8_t> buffer;
 
-    for (uint32_t routeID : routePayload) {
+    for (uint32_t routeID : routePayload)
+    {
         buffer.insert(buffer.end(),
                       reinterpret_cast<const uint8_t *>(&routeID),
                       reinterpret_cast<const uint8_t *>(&routeID) + sizeof(routeID));
@@ -110,7 +114,7 @@ void PeerSatelliteNode::sendData(const alice::Packet &packet)
         std::vector<uint8_t> data = packet.serialize(encryption_manager_);
         Logger::log(LogLevel::DEBUG, "Sending data of size: " + std::to_string(data.size()));
         asio::ip::udp::endpoint destination;
-        if (packet.type == alice::PacketType::DISCOVERY || packet.type == alice::PacketType::HANDSHAKE || packet.type == alice::PacketType::PULL)
+        if (packet.type == alice::PacketType::DISCOVERY || packet.type == alice::PacketType::KEEP_ALIVE || packet.type == alice::PacketType::HANDSHAKE || packet.type == alice::PacketType::PULL)
         {
             destination = asio::ip::udp::endpoint(asio::ip::make_address(bootstrap_ip_), bootstrap_port_);
         }
@@ -118,6 +122,7 @@ void PeerSatelliteNode::sendData(const alice::Packet &packet)
         {
             std::string ip;
             std::string port;
+            Logger::log(LogLevel::DEBUG, "Destination ID: " + std::to_string(packet.destination_id));
             std::istringstream ip_stream(ip_table_->get_ip(packet.destination_id));
             std::getline(ip_stream, ip, ':');
             std::getline(ip_stream, port);
@@ -128,6 +133,7 @@ void PeerSatelliteNode::sendData(const alice::Packet &packet)
     }
     catch (const std::exception &e)
     {
+        // throw std::runtime_error("Error while sending data: " + std::string(e.what()));
         Logger::log(LogLevel::ERROR, "Error while sending data: " + std::string(e.what()));
     }
 }
@@ -159,7 +165,8 @@ void PeerSatelliteNode::startPeriodicDiscovery()
     discovery_thread.detach();
 }
 
-void PeerSatelliteNode::getRoutingDetails(const alice::Packet &packet) {
+void PeerSatelliteNode::getRoutingDetails(const alice::Packet &packet)
+{
     sendData(packet);
     Logger::log(LogLevel::INFO, "GET ROUTE request to bootstrap node.");
 }
@@ -202,15 +209,18 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
-            case alice::PacketType::PULL: {
+            case alice::PacketType::PULL:
+            {
                 getRoutingDetails(packet);
                 break;
             }
-            case alice::PacketType::ROUTE: {
+            case alice::PacketType::ROUTE:
+            {
                 Logger::log(LogLevel::INFO, "Received Route Info from Bootstrap");
 
                 auto [routePayload, dataPayload] = deserializeRoutePayload(packet.payload);
-                if (routePayload.empty() || routePayload.size() == 1) {
+                if (routePayload.empty() || routePayload.size() == 1)
+                {
                     Logger::log(LogLevel::ERROR, "Route payload is empty. Cannot proceed with routing.");
                     break;
                 }
@@ -221,12 +231,12 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                     Logger::log(LogLevel::DEBUG, "Satellite ID in route: " + std::to_string(satelliteID));
                 }
 
-                if (routePayload.size() == 2) {
-                    routePayload.erase(routePayload.begin()); 
+                if (routePayload.size() == 2)
+                {
+                    routePayload.erase(routePayload.begin());
                     uint32_t targetSatelliteID = routePayload[0];
 
                     Logger::log(LogLevel::INFO, "Only one satellite in route. Sending DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
-
 
                     alice::Packet dataPacket(
                         id_,
@@ -234,15 +244,16 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                         alice::PacketType::DATA,
                         1,
                         0,
-                        dataPayload
-                    );
+                        dataPayload);
 
                     sendRouteData(dataPacket);
 
                     Logger::log(LogLevel::INFO, "Sent DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
-                } else {
-                    routePayload.erase(routePayload.begin()); 
-                    uint32_t nextSatelliteID = routePayload[0]; 
+                }
+                else
+                {
+                    routePayload.erase(routePayload.begin());
+                    uint32_t nextSatelliteID = routePayload[0];
 
                     std::vector<uint8_t> updatedPayload = serializeRoutePacket(routePayload, dataPayload);
 
