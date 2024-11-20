@@ -156,6 +156,8 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
         try
         {
             alice::Packet packet = alice::Packet::deserialize(raw_data, encryption_manager_);
+            Logger::log(LogLevel::DEBUG, "Received payload size: " + std::to_string(packet.payload.size()));
+
             switch (packet.type)
             {
             case alice::PacketType::DISCOVERY:

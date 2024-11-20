@@ -114,7 +114,7 @@ void PeerSatelliteNode::sendData(const alice::Packet &packet)
         std::vector<uint8_t> data = packet.serialize(encryption_manager_);
         Logger::log(LogLevel::DEBUG, "Sending data of size: " + std::to_string(data.size()));
         asio::ip::udp::endpoint destination;
-        if (packet.type == alice::PacketType::DISCOVERY || packet.type == alice::PacketType::KEEP_ALIVE || packet.type == alice::PacketType::HANDSHAKE || packet.type == alice::PacketType::PULL)
+        if (packet.type == alice::PacketType::DISCOVERY || packet.type == alice::PacketType::KEEP_ALIVE || packet.type == alice::PacketType::HANDSHAKE)
         {
             destination = asio::ip::udp::endpoint(asio::ip::make_address(bootstrap_ip_), bootstrap_port_);
         }
@@ -211,6 +211,7 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
             }
             case alice::PacketType::PULL:
             {
+                Logger::log(LogLevel::DEBUG, "Received PULL request from " + std::to_string(packet.source_id));
                 getRoutingDetails(packet);
                 break;
             }
