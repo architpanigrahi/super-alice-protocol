@@ -24,7 +24,7 @@ public:
     void updatePosition();
     void discoverPeers();
     void startPeriodicDiscovery();
-    void getRoutingDetails();
+    void getRoutingDetails(const alice::Packet &packet);
 };
 
 #endif

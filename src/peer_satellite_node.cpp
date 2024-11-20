@@ -145,9 +145,8 @@ void PeerSatelliteNode::startPeriodicDiscovery()
     discovery_thread.detach();
 }
 
-void PeerSatelliteNode::getRoutingDetails() {
-    alice::Packet discovery_request(id_, 1000000003, alice::PacketType::ROUTE, 1, 0, {});
-    sendData(discovery_request);
+void PeerSatelliteNode::getRoutingDetails(const alice::Packet &packet) {
+    sendData(packet);
     Logger::log(LogLevel::INFO, "GET ROUTE request to bootstrap node.");
 
 }
@@ -190,6 +189,10 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
+            case alice::PacketType::PULL: {
+                getRoutingDetails(packet);
+                break;
+            }
             case alice::PacketType::ROUTE: {
                 Logger::log(LogLevel::INFO, "Received Route Info from Bootstrap");
 
@@ -206,7 +209,7 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 }
 
                 if (routePayload.size() == 2) {
-                    routePayload.erase(routePayload.begin()); // Remove the current satellite from the route
+                    routePayload.erase(routePayload.begin()); 
                     uint32_t targetSatelliteID = routePayload[0];
 
                     Logger::log(LogLevel::INFO, "Only one satellite in route. Sending DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
@@ -221,13 +224,12 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                         dataPayload
                     );
 
-                    // Send the DATA packet
                     sendRouteData(dataPacket);
 
                     Logger::log(LogLevel::INFO, "Sent DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
                 } else {
-                    routePayload.erase(routePayload.begin()); // Remove the current satellite from the route
-                    uint32_t nextSatelliteID = routePayload[0]; // Assuming the first ID in the list is the next hop
+                    routePayload.erase(routePayload.begin()); 
+                    uint32_t nextSatelliteID = routePayload[0]; 
 
                     std::vector<uint8_t> updatedPayload = serializeRoutePacket(routePayload, dataPayload);
 
@@ -263,7 +265,6 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                     ip_table_->update_ip(peer_id, ip_port);
                     type_table_->update_type(peer_id, peer_type);
                     Logger::log(LogLevel::INFO, "Discovered peer: ID=" + std::to_string(peer_id) + "peer type: " + std::to_string(type) + ", IP=" + ip + ", Port=" + std::to_string(port));
-                    getRoutingDetails();
                 }
                 break;
             }

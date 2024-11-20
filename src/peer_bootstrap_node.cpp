@@ -201,11 +201,9 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
                     Logger::log(LogLevel::INFO, "ROUTE INFO : " + std::to_string(val));
                 }
 
-                std::vector<uint8_t> dataPayload = {1, 2, 3};
-
 
                 alice::Packet response_packet(
-                    id_, packet.source_id, alice::PacketType::ROUTE, 1, 0, serializeRoutePacket(optimal_route, dataPayload));
+                    id_, packet.source_id, alice::PacketType::ROUTE, 1, 0, serializeRoutePacket(optimal_route, packet.payload));
                 sendData(response_packet);
                 break;
             }
