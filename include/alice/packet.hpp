@@ -23,7 +23,8 @@ namespace alice
         ERROR,
         KEEP_ALIVE,
         DISCOVERY,
-        DISCOVERY_RESPONSE
+        DISCOVERY_RESPONSE,
+        ROUTE
     };
     std::ostream &operator<<(std::ostream &os, const PacketType &type);
     constexpr uint16_t CRC16_POLYNOMIAL = 0x8005;

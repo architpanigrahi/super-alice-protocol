@@ -137,6 +137,9 @@ namespace alice
         case alice::PacketType::DISCOVERY_RESPONSE:
             os << "DISCOVERY_RESPONSE";
             break;
+        case alice::PacketType::ROUTE:
+            os << "ROUTE";
+        break;
         case alice::PacketType::DATA:
             os << "DATA";
             break;

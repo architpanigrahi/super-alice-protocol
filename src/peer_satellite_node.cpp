@@ -42,6 +42,40 @@ void PeerSatelliteNode::disconnect()
     }
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
+
+std::vector<uint32_t> PeerSatelliteNode::deserializeRoutePayload(std::vector<uint8_t> &payload) {
+    std::vector<uint32_t> routePayload;
+    for (size_t i = 0; i < payload.size(); i+=sizeof(uint32_t)) {
+        routePayload.push_back(*reinterpret_cast<const uint32_t *>(&payload[i]));
+    }
+    return routePayload;
+}
+
+void PeerSatelliteNode::sendRouteData(const alice::Packet &packet)
+{
+    try
+    {
+        std::vector<uint8_t> data = packet.serialize(encryption_manager_);
+        std::string ip;
+        std::string port;
+        std::istringstream ip_stream(ip_table_->get_ip(packet.destination_id));
+        if (std::getline(ip_stream, ip, ':') && std::getline(ip_stream, port))
+        {
+            asio::ip::udp::endpoint destination(asio::ip::make_address(ip), std::stoi(port));
+            socket_.send_to(asio::buffer(data), destination);
+            Logger::log(LogLevel::INFO, "Data sent to device at " + ip + ":" + port);
+        }
+        else
+        {
+            Logger::log(LogLevel::ERROR, "Error while sending data: Invalid IP address.");
+        }
+    }
+    catch (const std::exception &e)
+    {
+        Logger::log(LogLevel::ERROR, "Error while sending data: " + std::string(e.what()));
+    }
+}
+
 void PeerSatelliteNode::sendData(const alice::Packet &packet)
 {
     try
@@ -85,6 +119,13 @@ void PeerSatelliteNode::startPeriodicDiscovery()
     discovery_thread.detach();
 }
 
+void PeerSatelliteNode::getRoutingDetails() {
+    alice::Packet discovery_request(id_, 1000000003, alice::PacketType::ROUTE, 1, 0, {});
+    sendData(discovery_request);
+    Logger::log(LogLevel::INFO, "GET ROUTE request to bootstrap node.");
+
+}
+
 void PeerSatelliteNode::discoverPeers()
 {
     try
@@ -111,7 +152,11 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
             {
             case alice::PacketType::DATA:
             {
-                Logger::log(LogLevel::INFO, "Not implemented.");
+                Logger::log(LogLevel::INFO, "PACKET INFO"+ std::to_string(packet.source_id) + ":"+ std::to_string(packet.destination_id));
+                for (uint32_t val : packet.payload) {
+                    // Cast to int to avoid interpreting as char
+                    Logger::log(LogLevel::INFO, "ROUTED DATA : " + std::to_string(val));
+                }
                 break;
             }
             case alice::PacketType::HANDSHAKE:
@@ -132,6 +177,70 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
             case alice::PacketType::ERROR:
             {
                 Logger::log(LogLevel::INFO, "Not implemented.");
+                break;
+            }
+            case alice::PacketType::ROUTE: {
+                Logger::log(LogLevel::INFO, "Received Route Info from Bootstrap");
+
+                // Deserialize the route payload into a vector of satellite IDs
+                std::vector<uint32_t> routePayload = deserializeRoutePayload(packet.payload);
+
+                if (routePayload.empty()) {
+                    Logger::log(LogLevel::ERROR, "Route payload is empty. Cannot proceed with routing.");
+                    break;
+                }
+
+                Logger::log(LogLevel::DEBUG, "Route payload contains " + std::to_string(routePayload.size()) + " entries.");
+                for (uint32_t satelliteID : routePayload) {
+                    Logger::log(LogLevel::DEBUG, "Satellite ID in route: " + std::to_string(satelliteID));
+                }
+
+                if (routePayload.size() == 1) {
+                    // If there is only one satellite in the route, send a DATA packet to it
+                    uint32_t targetSatelliteID = routePayload[0];
+
+                    Logger::log(LogLevel::INFO, "Only one satellite in route. Sending DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
+
+                    // Construct the payload {1, 2, 3}
+                    std::vector<uint8_t> dataPayload = {1, 2, 3};
+
+                    // Create a DATA packet
+                    alice::Packet dataPacket(
+                        id_,
+                        targetSatelliteID,
+                        alice::PacketType::DATA,
+                        1, // version
+                        0, // flags
+                        dataPayload
+                    );
+
+                    // Send the DATA packet
+                    sendRouteData(dataPacket);
+
+                    Logger::log(LogLevel::INFO, "Sent DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
+                } else {
+                    // Intermediate hop - forward the packet to the next satellite in the route
+                    uint32_t nextSatelliteID = routePayload[0]; // Assuming the first ID in the list is the next hop
+                    routePayload.erase(routePayload.begin()); // Remove the current satellite from the route
+
+                    // Serialize the updated route payload
+                    std::vector<uint8_t> updatedPayload(routePayload.size() * sizeof(uint32_t));
+                    std::memcpy(updatedPayload.data(), routePayload.data(), updatedPayload.size());
+
+                    // Create a new packet with the updated route
+                    alice::Packet forwardPacket(
+                        id_,
+                        nextSatelliteID,
+                        alice::PacketType::ROUTE,
+                        1,
+                        0,
+                        updatedPayload
+                    );
+
+                    // Send the packet to the next satellite
+                    sendRouteData(forwardPacket);
+                    Logger::log(LogLevel::INFO, "Forwarded route packet to Satellite ID=" + std::to_string(nextSatelliteID));
+                }
                 break;
             }
             case alice::PacketType::DISCOVERY_RESPONSE:
@@ -160,6 +269,7 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                             std::string ip_port = ip + ":" + std::to_string(port);
 
                             ip_table_->update_ip(peer_id, ip_port);
+                            getRoutingDetails();
 
                             Logger::log(LogLevel::INFO, "Discovered peer: ID=" + std::to_string(peer_id) +
                                                             ", IP=" + ip + ", Port=" + std::to_string(port));
