@@ -43,29 +43,34 @@ void PeerSatelliteNode::disconnect()
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
 
-std::pair<std::vector<uint32_t>, std::vector<uint8_t>> PeerSatelliteNode::deserializeRoutePayload(std::vector<uint8_t> &buffer) {
+std::pair<std::vector<uint32_t>, std::vector<uint8_t>> PeerSatelliteNode::deserializeRoutePayload(std::vector<uint8_t> &buffer)
+{
     std::vector<uint32_t> route;
     std::vector<uint8_t> dataPayload;
 
     size_t offset = 0;
 
-    while (offset + sizeof(uint32_t) <= buffer.size()) {
+    while (offset + sizeof(uint32_t) <= buffer.size())
+    {
         uint32_t route_id = *reinterpret_cast<const uint32_t *>(&buffer[offset]);
         route.push_back(route_id);
         offset += sizeof(uint32_t);
     }
 
-    if (offset < buffer.size()) {
+    if (offset < buffer.size())
+    {
         dataPayload.insert(dataPayload.end(), buffer.begin() + offset, buffer.end());
     }
 
     return {route, dataPayload};
 }
 
-std::vector<uint8_t> PeerSatelliteNode::serializeRoutePacket(const std::vector<uint32_t> &routePayload, const std::vector<uint8_t> &dataPayload) {
+std::vector<uint8_t> PeerSatelliteNode::serializeRoutePacket(const std::vector<uint32_t> &routePayload, const std::vector<uint8_t> &dataPayload)
+{
     std::vector<uint8_t> buffer;
 
-    for (uint32_t routeID : routePayload) {
+    for (uint32_t routeID : routePayload)
+    {
         buffer.insert(buffer.end(),
                       reinterpret_cast<const uint8_t *>(&routeID),
                       reinterpret_cast<const uint8_t *>(&routeID) + sizeof(routeID));
@@ -108,12 +113,27 @@ void PeerSatelliteNode::sendData(const alice::Packet &packet)
     {
         std::vector<uint8_t> data = packet.serialize(encryption_manager_);
         Logger::log(LogLevel::DEBUG, "Sending data of size: " + std::to_string(data.size()));
-        asio::ip::udp::endpoint destination(asio::ip::make_address(bootstrap_ip_), bootstrap_port_);
+        asio::ip::udp::endpoint destination;
+        if (packet.type == alice::PacketType::DISCOVERY || packet.type == alice::PacketType::KEEP_ALIVE || packet.type == alice::PacketType::HANDSHAKE || packet.type == alice::PacketType::PULL)
+        {
+            destination = asio::ip::udp::endpoint(asio::ip::make_address(bootstrap_ip_), bootstrap_port_);
+        }
+        else
+        {
+            std::string ip;
+            std::string port;
+            Logger::log(LogLevel::DEBUG, "Destination ID: " + std::to_string(packet.destination_id));
+            std::istringstream ip_stream(ip_table_->get_ip(packet.destination_id));
+            std::getline(ip_stream, ip, ':');
+            std::getline(ip_stream, port);
+            destination = asio::ip::udp::endpoint(asio::ip::make_address(ip), std::stoi(port));
+        }
         socket_.send_to(asio::buffer(data), destination);
-        Logger::log(LogLevel::INFO, "Data sent to bootstrap node at " + bootstrap_ip_ + ":" + std::to_string(bootstrap_port_));
+        Logger::log(LogLevel::INFO, "Data sent to device: " + std::to_string(packet.destination_id));
     }
     catch (const std::exception &e)
     {
+        // throw std::runtime_error("Error while sending data: " + std::string(e.what()));
         Logger::log(LogLevel::ERROR, "Error while sending data: " + std::string(e.what()));
     }
 }
@@ -145,10 +165,10 @@ void PeerSatelliteNode::startPeriodicDiscovery()
     discovery_thread.detach();
 }
 
-void PeerSatelliteNode::getRoutingDetails(const alice::Packet &packet) {
+void PeerSatelliteNode::getRoutingDetails(const alice::Packet &packet)
+{
     sendData(packet);
     Logger::log(LogLevel::INFO, "GET ROUTE request to bootstrap node.");
-
 }
 
 void PeerSatelliteNode::discoverPeers()
@@ -177,9 +197,9 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
             {
             case alice::PacketType::DATA:
             {
-                Logger::log(LogLevel::INFO, "PACKET INFO"+ std::to_string(packet.source_id) + ":"+ std::to_string(packet.destination_id));
-                for (uint32_t val : packet.payload) {
-                    // Cast to int to avoid interpreting as char
+                Logger::log(LogLevel::INFO, "PACKET INFO" + std::to_string(packet.source_id) + ":" + std::to_string(packet.destination_id));
+                for (uint32_t val : packet.payload)
+                {
                     Logger::log(LogLevel::INFO, "ROUTED DATA : " + std::to_string(val));
                 }
                 break;
@@ -189,31 +209,34 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
-            case alice::PacketType::PULL: {
+            case alice::PacketType::PULL:
+            {
                 getRoutingDetails(packet);
                 break;
             }
-            case alice::PacketType::ROUTE: {
+            case alice::PacketType::ROUTE:
+            {
                 Logger::log(LogLevel::INFO, "Received Route Info from Bootstrap");
 
                 auto [routePayload, dataPayload] = deserializeRoutePayload(packet.payload);
-
-                if (routePayload.empty() || routePayload.size() == 1) {
+                if (routePayload.empty() || routePayload.size() == 1)
+                {
                     Logger::log(LogLevel::ERROR, "Route payload is empty. Cannot proceed with routing.");
                     break;
                 }
 
                 Logger::log(LogLevel::DEBUG, "Route payload contains " + std::to_string(routePayload.size()) + " entries.");
-                for (uint32_t satelliteID : routePayload) {
+                for (uint32_t satelliteID : routePayload)
+                {
                     Logger::log(LogLevel::DEBUG, "Satellite ID in route: " + std::to_string(satelliteID));
                 }
 
-                if (routePayload.size() == 2) {
-                    routePayload.erase(routePayload.begin()); 
+                if (routePayload.size() == 2)
+                {
+                    routePayload.erase(routePayload.begin());
                     uint32_t targetSatelliteID = routePayload[0];
 
                     Logger::log(LogLevel::INFO, "Only one satellite in route. Sending DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
-
 
                     alice::Packet dataPacket(
                         id_,
@@ -221,15 +244,16 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                         alice::PacketType::DATA,
                         1,
                         0,
-                        dataPayload
-                    );
+                        dataPayload);
 
                     sendRouteData(dataPacket);
 
                     Logger::log(LogLevel::INFO, "Sent DATA packet to Satellite ID=" + std::to_string(targetSatelliteID));
-                } else {
-                    routePayload.erase(routePayload.begin()); 
-                    uint32_t nextSatelliteID = routePayload[0]; 
+                }
+                else
+                {
+                    routePayload.erase(routePayload.begin());
+                    uint32_t nextSatelliteID = routePayload[0];
 
                     std::vector<uint8_t> updatedPayload = serializeRoutePacket(routePayload, dataPayload);
 
@@ -239,8 +263,7 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                         alice::PacketType::ROUTE,
                         1,
                         0,
-                        updatedPayload
-                    );
+                        updatedPayload);
 
                     sendRouteData(forwardPacket);
                     Logger::log(LogLevel::INFO, "Forwarded route packet to Satellite ID=" + std::to_string(nextSatelliteID));
@@ -265,6 +288,18 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                     ip_table_->update_ip(peer_id, ip_port);
                     type_table_->update_type(peer_id, peer_type);
                     Logger::log(LogLevel::INFO, "Discovered peer: ID=" + std::to_string(peer_id) + "peer type: " + std::to_string(type) + ", IP=" + ip + ", Port=" + std::to_string(port));
+                    if (peer_type == PeerType::EDGE_DEVICE)
+                    {
+                        Logger::log(LogLevel::INFO, "Sending a pull request to the edge device. " + std::to_string(peer_id));
+                        std::vector<uint8_t> payload(sizeof(uint32_t) + sizeof(uint16_t));
+                        std::vector<uint8_t> ip_vector = convertIpToVector(host_ip_);
+                        std::fill(payload.begin(), payload.end(), 0);
+                        std::memcpy(payload.data(), ip_vector.data(), sizeof(ip_vector));
+                        uint16_t network_port = htons(host_port_);
+                        std::memcpy(payload.data() + 4, &network_port, sizeof(network_port));
+                        alice::Packet pull_request(id_, peer_id, alice::PacketType::PULL, 1, 0, payload);
+                        sendData(pull_request);
+                    }
                 }
                 break;
             }
