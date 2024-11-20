@@ -3,16 +3,18 @@
 PeerEdgeNode::PeerEdgeNode(const uint32_t &id)
     : Peer(id, PeerType::EDGE_DEVICE)
 {
-    latitude_ = -3.1190;   // Replace with your actual latitude
-    longitude_ = -60.0217; // Replace with your actual longitude
-    altitude_ = 92.0;      // Altitude in meters
+    // latitude_ = -3.1190;   // Replace with your actual latitude
+    // longitude_ = -60.0217; // Replace with your actual longitude
+    // altitude_ = 92.0;      // Altitude in meters
 
-    // Calculate position using latitude, longitude, and altitude
-    float R = 6371000.0f + altitude_; // Earth's radius in meters + altitude in meters
+    // // Calculate position using latitude, longitude, and altitude
+    // float R = 6371000.0f + altitude_; // Earth's radius in meters + altitude in meters
 
-    position_.x = R * std::cos(latitude_ * M_PI / 180.0f) * std::cos(longitude_ * M_PI / 180.0f);
-    position_.y = R * std::cos(latitude_ * M_PI / 180.0f) * std::sin(longitude_ * M_PI / 180.0f);
-    position_.z = R * std::sin(latitude_ * M_PI / 180.0f);
+    // position_.x = R * std::cos(latitude_ * M_PI / 180.0f) * std::cos(longitude_ * M_PI / 180.0f);
+    // position_.y = R * std::cos(latitude_ * M_PI / 180.0f) * std::sin(longitude_ * M_PI / 180.0f);
+    // position_.z = R * std::sin(latitude_ * M_PI / 180.0f);
+    orbital_parameters_ = {6871000.0, 0.001, 51.6, 0, 0, 0, 0};
+    position_ = alice::ECIPositionCalculator::calculate_position(orbital_parameters_, 1);
 
     Logger::log(LogLevel::INFO, "Edge device initialized with ID: " + std::to_string(id) +
                                     " and position: (" + std::to_string(position_.x) + ", " +
@@ -125,15 +127,12 @@ void PeerEdgeNode::startListening()
         return;
     }
     listening_ = true;
-
     Logger::log(LogLevel::INFO, "Listening for incoming data on " + host_ip_ + ":" + std::to_string(host_port_));
-    socket_.async_receive_from(
-        asio::buffer(receive_buffer_), remote_endpoint_,
-        [this](const asio::error_code &error, std::size_t bytes_transferred)
-        {
-            receiveData(error, bytes_transferred);
-        });
-
+    socket_.async_receive_from(asio::buffer(receive_buffer_), remote_endpoint_,
+                               [this](const asio::error_code &error, std::size_t bytes_transferred)
+                               {
+                                   receiveData(error, bytes_transferred);
+                               });
     io_thread_ = std::thread([this]
                              { io_context_.run(); });
 }
@@ -168,6 +167,16 @@ void PeerEdgeNode::receiveData(const asio::error_code &error, std::size_t bytes_
 
                 switch (packet.type)
                 {
+                case alice::PacketType::DISCOVERY:
+                    Logger::log(LogLevel::INFO, "Received DISCOVERY_RESPONSE from bootstrap node.");
+                    break;
+                case alice::PacketType::DATA:
+                {
+                    Logger::log(LogLevel::DEBUG, "===============================================================================================================");
+                    Logger::log(LogLevel::INFO, "Received DATA packet from " + std::to_string(packet.source_id));
+                    Logger::log(LogLevel::INFO, "Payload: " + std::string(packet.payload.begin(), packet.payload.end()));
+                    break;
+                }
                 case alice::PacketType::PULL:
                 {
                     try
@@ -219,7 +228,7 @@ void PeerEdgeNode::receiveData(const asio::error_code &error, std::size_t bytes_
                         std::string payload_json = payload_stream.str();
                         std::vector<uint8_t> payload_data(payload_json.begin(), payload_json.end());
 
-                        alice::Packet response_packet(id_, packet.source_id, alice::PacketType::PULL, 1, 0, payload_data, 0, 1);
+                        alice::Packet response_packet(id_, 123456, alice::PacketType::PULL, 1, 0, payload_data, 0, 1);
 
                         std::vector<uint8_t> serialized_data = response_packet.serialize(encryption_manager_);
 
@@ -260,13 +269,13 @@ void PeerEdgeNode::receiveData(const asio::error_code &error, std::size_t bytes_
         {
             Logger::log(LogLevel::ERROR, "Receive error: " + error.message());
         }
-        socket_.async_receive_from(
-            asio::buffer(receive_buffer_), remote_endpoint_,
-            [this](const asio::error_code &error, std::size_t bytes_transferred)
-            {
-                receiveData(error, bytes_transferred);
-            });
     }
+    socket_.async_receive_from(
+        asio::buffer(receive_buffer_), remote_endpoint_,
+        [this](const asio::error_code &error, std::size_t bytes_transferred)
+        {
+            receiveData(error, bytes_transferred);
+        });
 }
 
 #ifndef BUILD_TESTS
