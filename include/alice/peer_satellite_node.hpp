@@ -1,3 +1,4 @@
+// Created 14/11/2024 by Rokas Paulauskas
 #ifndef PEER_SATELLITE_NODE_HPP
 #define PEER_SATELLITE_NODE_HPP
 #include "peer.hpp"

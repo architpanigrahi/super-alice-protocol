@@ -1,3 +1,5 @@
+// Created by Rokas Paulauskas on 19/11/2024
+
 #ifndef DEVICE_TYPE_TABLE_HPP
 #define DEVICE_TYPE_TABLE_HPP
 #include <unordered_map>

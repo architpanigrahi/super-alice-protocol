@@ -1,3 +1,4 @@
+// Created by Rokas Paulauskas on 14/11/2024, modified later on 19/11/2024 by Ze Yan Liow and Rokas Paulauskas.
 #include "alice/peer_edge_node.hpp"
 
 PeerEdgeNode::PeerEdgeNode(const uint32_t &id)
