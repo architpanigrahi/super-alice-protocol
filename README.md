@@ -3,11 +3,26 @@
 ## Project Title: Super Alice - Satellite Networking Protocol  
 **Document Version:** 1.0  
 **Original Author:** Rokas Paulauskas  
-**Co-Authors:** Ze Yan Liow, Archit Panigrahi, Sathvika Thorali  
-**Date Modified:** 04/11/2024  
+**Co-Authors:** Ze Yan Liow, Archit Panigrahi, Sathvika Thorali, Prakash Narasimhan
+**Date Modified:** 22/11/2024  
 **Language:** C++  
 
 ---
+
+### Execution of Demo
+1. To execute demo, download source code extract, proceed to scripts directory and start with: sh run_demo.sh 
+2. To stop running the demo: sh stop_demo.sh and (command  +  c) or (ctrl + c) to exit all the running terminals from background.
+
+### OS Requirements
+1. Unix based OS
+
+### Compiler Requirements
+1. clang 15 or newer
+2. gcc 9.4 or newer
+
+### Current use cases
+1. Environmental Monitoring and Alert System (Group 14)
+2. Soil Health Monitoring in Farms (Group 6)
 
 ### 1. Overview  
 Super Alice is a peer-to-peer networking protocol designed for communication within Low Earth Orbit (LEO) satellite constellations. Implemented in C++, it leverages a custom UDP protocol optimized for low-latency and lightweight satellite communications. This protocol includes machine learning (ML) for optimized routing and a bootstrap node for peer discovery, enabling efficient data exchange in dynamic and constrained environments.
