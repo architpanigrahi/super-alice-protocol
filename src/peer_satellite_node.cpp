@@ -196,13 +196,9 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
             Logger::log(LogLevel::DEBUG, "received packet size of " + std::to_string(raw_data.size()));
             switch (packet.type)
             {
-            case alice::PacketType::DATA:
+            case alice::PacketType::PULL:
             {
-                Logger::log(LogLevel::INFO, "PACKET INFO" + std::to_string(packet.source_id) + ":" + std::to_string(packet.destination_id));
-                for (uint32_t val : packet.payload)
-                {
-                    Logger::log(LogLevel::INFO, "ROUTED DATA : " + std::to_string(val));
-                }
+                Logger::log(LogLevel::INFO, "Received PULL request from " + std::to_string(packet.source_id));
                 break;
             }
             case alice::PacketType::HANDSHAKE:
@@ -210,7 +206,7 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                 Logger::log(LogLevel::INFO, "Not implemented.");
                 break;
             }
-            case alice::PacketType::PULL:
+            case alice::PacketType::DATA:
             {
                 Logger::log(LogLevel::DEBUG, "Received PULL request from " + std::to_string(packet.source_id));
                 getRoutingDetails(packet);
@@ -300,6 +296,10 @@ void PeerSatelliteNode::receiveData(const asio::error_code &error, std::size_t b
                         uint16_t network_port = htons(host_port_);
                         std::memcpy(payload.data() + 4, &network_port, sizeof(network_port));
                         alice::Packet pull_request(id_, peer_id, alice::PacketType::PULL, 1, 0, payload);
+                        for (int i = 0; i < payload.size(); i++)
+                        {
+                            Logger::log(LogLevel::INFO, "Payload: " + std::to_string(payload[i]));
+                        }
                         sendData(pull_request);
                     }
                 }

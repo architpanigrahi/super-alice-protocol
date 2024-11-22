@@ -229,7 +229,7 @@ void PeerEdgeNode::receiveData(const asio::error_code &error, std::size_t bytes_
                         std::string payload_json = payload_stream.str();
                         std::vector<uint8_t> payload_data(payload_json.begin(), payload_json.end());
 
-                        alice::Packet response_packet(id_, 123456, alice::PacketType::PULL, 1, 0, payload_data, 0, 1);
+                        alice::Packet response_packet(id_, 123456, alice::PacketType::DATA, 1, 0, payload_data, 0, 1);
 
                         std::vector<uint8_t> serialized_data = response_packet.serialize(encryption_manager_);
 
