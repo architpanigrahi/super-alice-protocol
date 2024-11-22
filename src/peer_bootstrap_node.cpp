@@ -1,3 +1,4 @@
+// Created by Rokas Paulauskas on 19/11/2024, routing done by Prakash Narasimhan
 #include "alice/peer_bootstrap_node.hpp"
 #include <string>
 #include <vector>
@@ -80,7 +81,8 @@ void PeerBootstrapNode::disconnect()
     Logger::log(LogLevel::INFO, "Bootstrap node disconnected.");
 }
 
-std::vector<uint8_t> PeerBootstrapNode::serializeRoutePacket(const std::vector<uint32_t>& optimal_route, std::vector<uint8_t> dataPayload) {
+std::vector<uint8_t> PeerBootstrapNode::serializeRoutePacket(const std::vector<uint32_t> &optimal_route, std::vector<uint8_t> dataPayload)
+{
     std::vector<uint8_t> buffer;
     for (uint32_t route_id : optimal_route)
     {
@@ -202,7 +204,6 @@ void PeerBootstrapNode::receiveData(const asio::error_code &error, std::size_t b
                 {
                     Logger::log(LogLevel::INFO, "ROUTE INFO : " + std::to_string(val));
                 }
-
 
                 alice::Packet response_packet(
                     id_, packet.source_id, alice::PacketType::ROUTE, 1, 0, serializeRoutePacket(optimal_route, packet.payload));

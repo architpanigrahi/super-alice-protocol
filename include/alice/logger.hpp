@@ -1,3 +1,4 @@
+// Not thread safe!! Created By Rokas Paulauskas on 14/11/2024
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 

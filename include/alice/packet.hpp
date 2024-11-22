@@ -1,5 +1,7 @@
 //
 // Created by Archit Panigrahi on 04/11/2024.
+// Modified By Rokas Paulauskas(Packet Types, Structure, Encryption only on priority 255), Prakash Narasimhan(crc, using encryption).
+//
 //
 
 #ifndef ALICE_PACKET_HPP
